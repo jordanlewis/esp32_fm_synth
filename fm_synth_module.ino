@@ -954,10 +954,10 @@ void FmSynth_Init(void)
 
     setting->algo = 0;
     setting->fmFeedback = 0.000000;
-    setting->op_prop[0].ar = 1;
-    setting->op_prop[0].d1r = 32767;
+    setting->op_prop[0].ar = 2025;
+    setting->op_prop[0].d1r = 1866;
     setting->op_prop[0].d2l = 1.000000;
-    setting->op_prop[0].d2r = 32767;
+    setting->op_prop[0].d2r = 3050;
     setting->op_prop[0].rr = 1;
     setting->op_prop[0].rs = 50;
     setting->op_prop[0].tl = 0.999998;
