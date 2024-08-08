@@ -50,6 +50,7 @@
 
 
 #include <Arduino.h>
+#include <arduino-timer.h>
 #include <FS.h>
 #include <SD_MMC.h>
 #include <WiFi.h>
@@ -76,11 +77,159 @@ extern void Status_ValueChangedFloat(const char *descr, float value);
 /* to avoid the high click when turning on the microphone */
 static float click_supp_gain = 0.0f;
 
+#define N_CHORDS 105
+static int chords[N_CHORDS][4] = {
+    {57,60,64,0},
+    {60,64,69,0},
+    {64,69,72,0},
+    {57,60,64,67},
+    {60,64,67,69},
+    {64,67,69,72},
+    {67,69,72,76},
+    {60,64,67,0},
+    {64,67,72,0},
+    {67,72,76,0},
+    {60,64,67,71},
+    {64,67,71,72},
+    {67,71,72,76},
+    {71,72,76,79},
+    {62,65,69,0},
+    {65,69,74,0},
+    {69,74,77,0},
+    {62,65,69,72},
+    {65,69,72,74},
+    {69,72,74,77},
+    {72,74,77,81},
+    {64,67,71,0},
+    {67,71,76,0},
+    {71,76,79,0},
+    {64,67,71,74},
+    {67,71,74,76},
+    {71,74,76,79},
+    {74,76,79,83},
+    {65,69,72,0},
+    {69,72,77,0},
+    {72,77,81,0},
+    {65,69,72,76},
+    {69,72,76,77},
+    {72,76,77,81},
+    {76,77,81,84},
+    {67,71,74,0},
+    {71,74,79,0},
+    {74,79,83,0},
+    {67,71,74,77},
+    {71,74,77,79},
+    {74,77,79,83},
+    {77,79,83,86},
+    {69,72,76,0},
+    {72,76,81,0},
+    {76,81,84,0},
+    {69,72,76,79},
+    {72,76,79,81},
+    {76,79,81,84},
+    {79,81,84,88},
+    {72,76,79,0},
+    {76,79,84,0},
+    {79,84,88,0},
+    {72,76,79,83},
+    {76,79,83,84},
+    {79,83,84,88},
+    {83,84,88,91},
+    {74,77,81,0},
+    {77,81,86,0},
+    {81,86,89,0},
+    {74,77,81,84},
+    {77,81,84,86},
+    {81,84,86,89},
+    {84,86,89,93},
+    {76,79,83,0},
+    {79,83,88,0},
+    {83,88,91,0},
+    {76,79,83,86},
+    {79,83,86,88},
+    {83,86,88,91},
+    {86,88,91,95},
+    {77,81,84,0},
+    {81,84,89,0},
+    {84,89,93,0},
+    {77,81,84,88},
+    {81,84,88,89},
+    {84,88,89,93},
+    {88,89,93,96},
+    {79,83,86,0},
+    {83,86,91,0},
+    {86,91,95,0},
+    {79,83,86,89},
+    {83,86,89,91},
+    {86,89,91,95},
+    {89,91,95,98},
+    {81,84,88,0},
+    {84,88,93,0},
+    {88,93,96,0},
+    {81,84,88,91},
+    {84,88,91,93},
+    {88,91,93,96},
+    {91,93,96,100},
+    {84,88,91,0},
+    {88,91,96,0},
+    {91,96,100,0},
+    {84,88,91,95},
+    {88,91,95,96},
+    {91,95,96,100},
+    {95,96,100,103},
+    {86,89,93,0},
+    {89,93,98,0},
+    {93,98,101,0},
+    {86,89,93,96},
+    {89,93,96,98},
+    {93,96,98,101},
+    {96,98,101,105}
+};
+
+void button1(){
+  Serial.println("one"); 
+}
+void button2(){
+  Serial.println("two"); 
+}
+void button3(){
+  Serial.println("three"); 
+}
+void button4(){
+  Serial.println("four"); 
+}
+
+
+auto timer1sec = timer_create_default();
+auto timer8sec = timer_create_default();
+
+#define KEY1 36
+#define KEY2 13
+#define KEY3 19
+#define KEY4 23
+#define KEY5 18
+#define KEY6 5
+
+
+static int curChannel = 11;
+static int lastChannel = 11;
+
 /* this application starts here */
 void setup()
 {
     // put your setup code here, to run once:
     delay(500);
+
+    timer1sec.every(1000, loop_1Hz);
+    timer8sec.every(8000, loop_8sec);
+
+    pinMode(KEY1,INPUT_PULLUP);
+    pinMode(KEY2,INPUT_PULLUP);
+    pinMode(KEY3,INPUT_PULLUP);
+    pinMode(KEY4,INPUT_PULLUP);
+    pinMode(KEY5,INPUT_PULLUP);
+    pinMode(KEY6,INPUT_PULLUP);
+
 
     heap_caps_print_heap_info(MALLOC_CAP_8BIT);
 
@@ -162,6 +311,16 @@ void setup()
 #endif
 
     Core0TaskInit();
+
+
+
+    FmSynth_ModulationWheel(1, .01);
+    FmSynth_ModulationSpeed(1, .01);
+    Reverb_SetLevel(1, .5);
+    FmSynth_NoteOn(curChannel, 1, 0.0f);
+    FmSynth_NoteOff(curChannel, 1);
+    
+    loop_8sec(NULL);
 }
 
 #ifdef ESP32
@@ -458,7 +617,7 @@ inline void audio_task()
  * this function will be called once a second
  * call can be delayed when one operation needs more time (> 1/44100s)
  */
-void loop_1Hz(void)
+bool loop_1Hz(void *)
 {
 #ifdef ESP32_AUDIO_KIT
     button_loop();
@@ -466,6 +625,74 @@ void loop_1Hz(void)
 #ifdef BLINK_LED_PIN
     Blink_Process();
 #endif
+
+return true;
+}
+
+bool loop_8sec(void *)
+{
+        static int *lastChord = NULL;
+
+        int *chord = lastChord;
+        if (chord != NULL) {
+            Serial.printf("Have last chord");
+            for (int i = 0; i < 4; i++) {
+                Serial.printf(" %d", chord[i]);
+                if (chord[i] != 0) {
+                     FmSynth_NoteOff(lastChannel, chord[i]-24);
+                }
+            }
+            Serial.println("");
+        }
+        lastChannel = curChannel;
+        Serial.printf("Playing chord on channel %d\n", curChannel);
+
+        if (lastChord == NULL) {
+            int chordIdx = random(N_CHORDS);
+            chord = chords[chordIdx];
+            lastChord = chord;
+        } else {
+            // Find all chords that have all but one note in common with the previous chord.
+            int chordArray[N_CHORDS];
+            int nChords = 0;
+            for (int i = 0; i < N_CHORDS; i++) {   // For each of the top level chords
+                int nMatches = 0;
+                for (int oldIdx = 0; oldIdx < 4; oldIdx++) { // For each of the notes in the last chord
+                    for (int newIdx = 0; newIdx < 4; newIdx++) {  // For each of the notes in the new chord
+                        if (lastChord[oldIdx] == chords[i][newIdx]) {
+                            // Found a match!
+                            //Serial.printf("Match: %d %d\n", lastChord[oldIdx], chords[i][newIdx]);
+                            nMatches += 1;
+                            break;
+                        }
+                    }
+                }
+                if (nMatches == 3) {
+                    Serial.printf("Found match:");
+                    for (int j = 0; j < 4; j++) {
+                        Serial.printf(" %d", chords[i][j]); 
+                    }
+                    Serial.println("");
+                    chordArray[nChords] = i;
+                    nChords += 1;
+                }
+            }
+            
+            int chordIdx = random(nChords);
+            chord = chords[chordArray[chordIdx]];
+            lastChord = chord;
+        }
+
+        Serial.printf("Playing chord");
+        for (int i = 0; i < 4; i++) {
+            Serial.printf(" %d", chord[i]);
+            if (chord[i]!=0) {
+                 FmSynth_NoteOn(curChannel, chord[i]-24, 1.0f);
+            }
+        }
+        Serial.println();
+
+    return true;
 }
 
 /*
@@ -473,14 +700,25 @@ void loop_1Hz(void)
  */
 void loop()
 {
+
+    timer1sec.tick();
+    timer8sec.tick();
     static uint32_t loop_cnt;
 
-    loop_cnt += SAMPLE_BUFFER_SIZE;
-    if (loop_cnt >= SAMPLE_RATE)
-    {
-        loop_cnt = 0;
-        loop_1Hz();
+    static int sensorVal = 1;
+
+    int newVal = digitalRead(KEY1);
+    if (sensorVal == 1 && newVal == 0) {
+      // Key 1 was just pressed.
+      curChannel = (curChannel % 16) + 1;
+      char numberArray[2];
+      itoa(curChannel, numberArray, 10);
+      Serial.printf("Switched channel to %s\n", numberArray);
+      sensorVal = newVal;
+    } else if (newVal == 1) {
+      sensorVal = newVal;
     }
+ 
 
     Midi_Process();
 
