@@ -114,21 +114,160 @@ struct midiControllerMapping edirolMapping[] =
 
     { 0x1, 0x12, "S9", NULL, FmSynth_Release, 8},
 
-    /* rotary */
-    { 0x0, 0x10, "R1", NULL, FmSynth_VelToLev, 0},
-    { 0x1, 0x10, "R2", NULL, FmSynth_LfoAM, 1},
-    { 0x2, 0x10, "R3", NULL, FmSynth_LfoFM, 2},
-    { 0x3, 0x10, "R4", NULL, FmSynth_Feedback, 3},
+     /* CIRCUIT MAPPINGS */
+    /* Synth 1 1-8 */
+    { 0x1, 80, "R1", NULL, FmSynth_VelToLev, 0},
+    { 0x1, 81, "R2", NULL, FmSynth_LfoAM, 1},
+    { 0x1, 82, "R3", NULL, FmSynth_LfoFM, 2},
+    { 0x1, 83, "R4", NULL, FmSynth_Feedback, 3},
+    { 0x1, 84, "R5", NULL, Delay_SetInputLevel, 0},
+    { 0x1, 85, "R6", NULL, Delay_SetFeedback, 0},
+    { 0x1, 86, "R7", NULL, Delay_SetLength, 0},
+    { 0x1, 87, "R8", NULL, Delay_SetOutputLevel, 0},
 
-    { 0x4, 0x10, "R5", NULL, Delay_SetInputLevel, 0},
-    { 0x5, 0x10, "R6", NULL, Delay_SetFeedback, 0},
-    { 0x6, 0x10, "R7", NULL, Delay_SetLength, 0},
-    { 0x7, 0x10, "R8", NULL, Delay_SetOutputLevel, 0},
+    /* Synth 2 1-8 */
+
+    { 0x1, 80, "R1", NULL, FmSynth_ChangeParam, 0},
+    { 0x1, 81, "R2", NULL, FmSynth_ChangeParam, 1},
+    { 0x1, 82, "R3", NULL, FmSynth_ChangeParam, 2},
+    { 0x1, 83, "R4", NULL, FmSynth_ChangeParam, 3},
+
+    { 0x1, 84, "R5", NULL, FmSynth_Attack, 4},
+    { 0x1, 85, "R6", NULL, FmSynth_Decay1, 5},
+    { 0x1, 86, "R7", NULL, FmSynth_DecayL, 6},
+    { 0x1, 87, "R8", NULL, FmSynth_Decay2, 7},
 
     { 0x0, 0x12, "R9", NULL, Reverb_SetLevel, 0},
 
-    /* Central slider */
-    { 0x0, 0x13, "H1", NULL, Synth_SetMidiMasterTempo, 0},
+    /* drum 1/2 */
+    { 0x9, 14, "A1", NULL, FmSynth_ToggleMono, 0},
+    { 0x9, 34, "A2", NULL, FmSynth_ToggleLegato, 1},
+    { 0x9, 15, "A3", NULL, FmSynth_ChannelSettingDump, 2},
+    { 0x9, 40, "A4", NULL, FmSynth_ChannelSettingInit, 3},
+    { 0x9, 16, "A5", NULL, FmSynth_SelectOp, 0},
+    { 0x9, 42, "A6", NULL, FmSynth_SelectOp, 1},
+    { 0x9, 17, "A7", NULL, FmSynth_SelectOp, 2},
+    { 0x9, 43, "A8", NULL, FmSynth_SelectOp, 3},
+
+
+
+    /* drum 3/4 */
+
+    { 0x9, 46, "A1", NULL, FmSynth_ToggleMono, 0},
+    { 0x9, 55, "A2", NULL, FmSynth_ToggleLegato, 1},
+    { 0x9, 47, "A3", NULL, FmSynth_ChannelSettingDump, 2},
+    { 0x9, 57, "A4", NULL, FmSynth_ChannelSettingInit, 3},
+    { 0x9, 48, "A5", NULL, FmSynth_SelectOp, 0},
+    { 0x9, 61, "A6", NULL, FmSynth_SelectOp, 1},
+    { 0x9, 49, "A7", NULL, FmSynth_SelectOp, 2},
+    { 0x9, 76, "A8", NULL, FmSynth_SelectOp, 3},
+
+    /* mixer */
+
+    { 15, 12, "A1", NULL, FmSynth_ToggleMono, 0},
+    { 15, 14, "A2", NULL, FmSynth_ToggleLegato, 1},
+    { 0x9, 12, "A3", NULL, FmSynth_ChannelSettingDump, 2},
+    { 0x9, 23, "A4", NULL, FmSynth_ChannelSettingInit, 3},
+    { 0x9, 45, "A5", NULL, FmSynth_SelectOp, 0},
+    { 0x9, 53, "A6", NULL, FmSynth_SelectOp, 1},
+
+    /* fx 1 */
+
+    { 15, 111, "A1", NULL, FmSynth_ToggleMono, 0},
+    { 15, 112, "A2", NULL, FmSynth_ToggleLegato, 1},
+    { 15, 113, "A3", NULL, FmSynth_ChannelSettingDump, 2},
+    { 15, 114, "A4", NULL, FmSynth_ChannelSettingInit, 3},
+    { 15, 115, "A5", NULL, FmSynth_SelectOp, 0},
+    { 15, 116, "A6", NULL, FmSynth_SelectOp, 1},
+
+
+    /* fx 2 */
+
+    { 15, 88, "A1", NULL, FmSynth_ToggleMono, 0},
+    { 15, 89, "A2", NULL, FmSynth_ToggleLegato, 1},
+    { 15, 90, "A3", NULL, FmSynth_ChannelSettingDump, 2},
+    { 15, 106, "A4", NULL, FmSynth_ChannelSettingInit, 3},
+    { 15, 109, "A5", NULL, FmSynth_SelectOp, 0},
+    { 15, 110, "A6", NULL, FmSynth_SelectOp, 1},
+
+    /* Filter  */
+    //{ 15, 74, "H1", NULL, Synth_SetMidiMasterTempo, 0},
+
+};
+
+struct midiControllerMapping circuitMapping[] =
+{
+    { 0x0, 80, "R1", NULL, FmSynth_VelToLev, 0},
+    { 0x0, 81, "R2", NULL, FmSynth_LfoAM, 1},
+    { 0x0, 82, "R3", NULL, FmSynth_LfoFM, 2},
+    { 0x0, 83, "R4", NULL, FmSynth_Feedback, 3},
+    { 0x0, 84, "R5", NULL, Delay_SetInputLevel, 0},
+    { 0x0, 85, "R6", NULL, Delay_SetFeedback, 0},
+    { 0x0, 86, "R7", NULL, Delay_SetLength, 0},
+    { 0x0, 87, "R8", NULL, Delay_SetOutputLevel, 0},
+
+    /* Synth 2 1-8 */
+
+    { 0x1, 80, "R1", NULL, FmSynth_ChangeParam, 0},
+    { 0x1, 81, "R2", NULL, FmSynth_ChangeParam, 1},
+    { 0x1, 82, "R3", NULL, FmSynth_ChangeParam, 2},
+    { 0x1, 83, "R4", NULL, FmSynth_ChangeParam, 3},
+    { 0x1, 84, "R5", NULL, FmSynth_Attack, 4},
+    { 0x1, 85, "R6", NULL, FmSynth_Decay1, 5},
+    { 0x1, 86, "R7", NULL, FmSynth_DecayL, 6},
+    { 0x1, 87, "R8", NULL, FmSynth_Decay2, 7},
+
+    /* drum 1/2 */
+    { 0x9, 14, "A1", NULL, FmSynth_ToggleMono, 0},
+    { 0x9, 34, "A2", NULL, FmSynth_ToggleLegato, 1},
+    { 0x9, 15, "A3", NULL, FmSynth_ChannelSettingDump, 2},
+    { 0x9, 40, "A4", NULL, FmSynth_ChannelSettingInit, 3},
+    { 0x9, 16, "A5", NULL, FmSynth_SelectOp, 0},
+    { 0x9, 42, "A6", NULL, FmSynth_SelectOp, 1},
+    { 0x9, 17, "A7", NULL, FmSynth_SelectOp, 2},
+    { 0x9, 43, "A8", NULL, FmSynth_SelectOp, 3},
+
+    /* drum 3/4 */
+
+    { 0x9, 46, "A1", NULL, FmSynth_SetAlgorithm, 0},
+    { 0x9, 55, "A2", NULL, FmSynth_SetAlgorithm, 1},
+    { 0x9, 47, "A3", NULL, FmSynth_SetAlgorithm, 2},
+    { 0x9, 57, "A4", NULL, FmSynth_SetAlgorithm, 3},
+    { 0x9, 48, "A5", NULL, FmSynth_SetAlgorithm, 4},
+    { 0x9, 61, "A6", NULL, FmSynth_SetAlgorithm, 5},
+    { 0x9, 49, "A7", NULL, FmSynth_SetAlgorithm, 6},
+    { 0x9, 76, "A8", NULL, FmSynth_SetAlgorithm, 7},
+
+    /* mixer */
+
+    { 15, 12, "A1", NULL, FmSynth_ModulationWheel, 0},
+    { 15, 14, "A2", NULL, FmSynth_ModulationSpeed, 1},
+    { 0x9, 12, "A3", NULL, FmSynth_ChannelSettingDump, 2},
+    { 0x9, 23, "A4", NULL, FmSynth_ChannelSettingInit, 3},
+    { 0x9, 45, "A5", NULL, FmSynth_SelectOp, 0},
+    { 0x9, 53, "A6", NULL, FmSynth_SelectOp, 1},
+
+    /* fx 1 */
+
+    { 15, 111, "A1", NULL, FmSynth_ToggleMono, 0},
+    { 15, 112, "A2", NULL, FmSynth_ToggleLegato, 1},
+    { 15, 113, "A3", NULL, FmSynth_ChannelSettingDump, 2},
+    { 15, 114, "A4", NULL, FmSynth_ChannelSettingInit, 3},
+    { 15, 115, "A5", NULL, FmSynth_SelectOp, 0},
+    { 15, 116, "A6", NULL, FmSynth_SelectOp, 1},
+
+
+    /* fx 2 */
+
+    { 15, 88, "A1", NULL, FmSynth_ToggleMono, 0},
+    { 15, 89, "A2", NULL, FmSynth_ToggleLegato, 1},
+    { 15, 90, "A3", NULL, FmSynth_ChannelSettingDump, 2},
+    { 15, 106, "A4", NULL, FmSynth_ChannelSettingInit, 3},
+    { 15, 109, "A5", NULL, FmSynth_SelectOp, 0},
+    { 15, 110, "A6", NULL, FmSynth_SelectOp, 1},
+
+    /* Filter  */
+    { 15, 74, "H1", NULL, Reverb_SetLevel, 0},
 };
 
 struct midiMapping_s midiMapping =
@@ -151,6 +290,6 @@ struct midiMapping_s midiMapping =
     NULL, /* assign program change callback here! */
     Synth_RealTimeMsg,
     Synth_SongPosition,
-    edirolMapping,
-    sizeof(edirolMapping) / sizeof(edirolMapping[0]),
+    circuitMapping,
+    sizeof(circuitMapping) / sizeof(circuitMapping[0]),
 };

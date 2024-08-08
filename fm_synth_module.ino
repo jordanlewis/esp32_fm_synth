@@ -1602,6 +1602,12 @@ void FmSynth_ModulationWheel(uint8_t ch, float value)
     modulationDepth = value;
 }
 
+void FmSynth_ModulationSpeed(uint8_t ch, float value)
+{
+    modulationSpeed = pow(2, value * 8);
+    Status_ValueChangedFloat("modulationSpeed", modulationSpeed);
+}
+
 #ifdef PRESSURE_SENSOR_ENABLED
 void FmSynth_Pressure(uint8_t unused, float value)
 {
@@ -1753,4 +1759,10 @@ void FmSynth_Feedback(uint8_t unused, float value)
 {
     currentChSetting->fmFeedback = value;
     Status_ValueChangedFloat("feedback", currentChSetting->fmFeedback);
+}
+
+void FmSynth_Rs(uint8_t unused, float value)
+{
+    currentChSetting->op_prop[selectedOp].rs = pow(2, value * 10);
+    Status_ValueChangedFloatArr("op_rs", currentChSetting->op_prop[selectedOp].rs, 4 - selectedOp);
 }
