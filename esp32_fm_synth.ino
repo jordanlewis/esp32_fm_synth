@@ -202,6 +202,8 @@ void button4(){
 
 auto timer1sec = timer_create_default();
 auto timer8sec = timer_create_default();
+auto bleepSequenceTimer = timer_create_default();
+auto bleepTimer = timer_create_default();
 
 #define KEY1 36
 #define KEY2 13
@@ -319,8 +321,11 @@ void setup()
     Reverb_SetLevel(1, .5);
     FmSynth_NoteOn(curChannel, 1, 0.0f);
     FmSynth_NoteOff(curChannel, 1);
+
+    delay(125);
     
     loop_8sec(NULL);
+    bleepSequenceTimer.in(random(8000), doBleepSequence);
 }
 
 #ifdef ESP32
@@ -629,10 +634,10 @@ bool loop_1Hz(void *)
 return true;
 }
 
+static int *lastChord = NULL;
+
 bool loop_8sec(void *)
 {
-        static int *lastChord = NULL;
-
         int *chord = lastChord;
         if (chord != NULL) {
             Serial.printf("Have last chord");
@@ -695,15 +700,61 @@ bool loop_8sec(void *)
     return true;
 }
 
+static int bleepCount;
+static int bleepChan;
+static int bleepNote;
+static bool bleepPlaying = false;
+bool doBleepSequence(void *) {
+    if (lastChord == NULL) {
+      return true;
+    }
+    int bleepDur = random(400);
+    bleepChan = 7;
+
+    // Pick random note, if it's a triad ignore the 4th note (0).
+    if (lastChord[3] == 0) {
+        bleepNote = lastChord[random(3)];
+    } else {
+        bleepNote = lastChord[random(4)];
+    }
+    
+    if (bleepDur < 200) {
+        bleepCount = random(10);
+    } else {
+        bleepCount = 1;
+    }
+    Serial.printf("Beginning a bleep sequence. count=%d, dur=%d, note=%d, chan=%d\n", bleepCount, bleepDur, bleepNote, bleepChan);
+    bleepTimer.every(bleepDur, doBleep);
+    return true;
+}
+
+bool doBleep(void *) {
+    if (bleepPlaying) {
+        FmSynth_NoteOff(bleepChan, bleepNote);
+    }
+    bleepPlaying = (bleepCount > 0);
+    if (!bleepPlaying) {
+        // Schedule a new bleep sequence.
+        bleepSequenceTimer.in(random(8000), doBleepSequence);
+        return false;
+    }
+
+    Serial.printf("bleeping. count=%d, note=%d, chan=%d\n", bleepCount, bleepNote, bleepChan);
+
+    FmSynth_NoteOn(bleepChan, bleepNote, 100);
+    bleepCount--;
+    return true;
+}
+
 /*
  * this is the main loop
  */
 void loop()
 {
-
     timer1sec.tick();
     timer8sec.tick();
-    static uint32_t loop_cnt;
+    bleepSequenceTimer.tick();
+    bleepTimer.tick();
 
     static int sensorVal = 1;
 
