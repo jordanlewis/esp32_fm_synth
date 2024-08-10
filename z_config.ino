@@ -242,8 +242,8 @@ struct midiControllerMapping circuitMapping[] =
 
     { 15, 12, "A1", NULL, FmSynth_ModulationWheel, 0},
     { 15, 14, "A2", NULL, FmSynth_ModulationSpeed, 1},
-    { 0x9, 12, "A3", NULL, FmSynth_ChannelSettingDump, 2},
-    { 0x9, 23, "A4", NULL, FmSynth_ChannelSettingInit, 3},
+    { 0x9, 12, "A3", NULL, FmSynth_TremoloWheel, 2},
+    { 0x9, 23, "A4", NULL, FmSynth_TremoloSpeed, 3},
     { 0x9, 45, "A5", NULL, FmSynth_SelectOp, 0},
     { 0x9, 53, "A6", NULL, FmSynth_SelectOp, 1},
 

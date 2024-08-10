@@ -182,6 +182,9 @@ struct channelSettingParam_s
 float modulationDepth = 0.0f;
 float modulationSpeed = 5.0f;
 float modulationPitch = 1.0f;
+float tremoloDepth = 0.0f;
+float tremoloSpeed = 5.0f;
+float tremoloAmp = 1.0f;
 float pitchBendValue = 0.0f;
 #ifdef PRESSURE_SENSOR_ENABLED
 float pressureValue = 0.0f;
@@ -340,57 +343,36 @@ void FmSynth_Init(void)
     }
 
     struct channelSettingParam_s *setting = &channelSettings[0];
-
+    /* Simple Sine wave pad */
     setting->algo = 0;
     setting->fmFeedback = 0;
-    setting->op_prop[0].ar = 1.855923;
-    setting->op_prop[0].d1r = 1.855923;
+    setting->op_prop[0].ar = 2025;
+    setting->op_prop[0].d1r = 1866;
     setting->op_prop[0].d2l = 1.000000;
-    setting->op_prop[0].d2r = 32767.000000;
-    setting->op_prop[0].rr = 1.855923;
+    setting->op_prop[0].d2r = 3050;
+    setting->op_prop[0].rr = 1;
     setting->op_prop[0].rs = 50.000000;
-    setting->op_prop[0].tl = 1.000000;
-    setting->op_prop[0].mul = 2.500000;
+    setting->op_prop[0].tl = 0.900000;
+    setting->op_prop[0].mul = 0.5000000;
     setting->op_prop[0].vel_to_tl = 0.000000;
     setting->op_prop[0].am = 0.000000;
     setting->op_prop[0].mw = 0.000000;
     setting->op_prop[0].vel = 0.000000;
-    setting->op_prop[1].ar = 1.855923;
-    setting->op_prop[1].d1r = 1.855923;
-    setting->op_prop[1].d2l = 0.346456;
-    setting->op_prop[1].d2r = 32767.000000;
-    setting->op_prop[1].rr = 1.855923;
+    setting->op_prop[1].ar = 1;
+    setting->op_prop[1].d1r = 30191;
+    setting->op_prop[1].d2l = 1.000000;
+    setting->op_prop[1].d2r = 32767;
+    setting->op_prop[1].rr = 1;
     setting->op_prop[1].rs = 50.000000;
-    setting->op_prop[1].tl = 0.322834;
-    setting->op_prop[1].mul = 3.500000;
-    setting->op_prop[1].vel_to_tl = 0.614172;
+    setting->op_prop[1].tl = 0.110000;
+    setting->op_prop[1].mul = 0.5000000;
+    setting->op_prop[1].vel_to_tl = 0.000000;
     setting->op_prop[1].am = 0.000000;
     setting->op_prop[1].mw = 0.000000;
     setting->op_prop[1].vel = 0.000000;
-    setting->op_prop[2].ar = 1.855923;
-    setting->op_prop[2].d1r = 1.855923;
-    setting->op_prop[2].d2l = 0.401574;
-    setting->op_prop[2].d2r = 32767.000000;
-    setting->op_prop[2].rr = 1.855923;
-    setting->op_prop[2].rs = 50.000000;
-    setting->op_prop[2].tl = 0.047244;
-    setting->op_prop[2].mul = 11.000000;
-    setting->op_prop[2].vel_to_tl = 0.999998;
-    setting->op_prop[2].am = 0.000000;
-    setting->op_prop[2].mw = 0.000000;
-    setting->op_prop[2].vel = 0.000000;
-    setting->op_prop[3].ar = 1.855923;
-    setting->op_prop[3].d1r = 1.855923;
-    setting->op_prop[3].d2l = 1.000000;
-    setting->op_prop[3].d2r = 32767.000000;
-    setting->op_prop[3].rr = 1.855923;
-    setting->op_prop[3].rs = 50.000000;
+    
+    setting->op_prop[2].tl = 0.000000;
     setting->op_prop[3].tl = 0.000000;
-    setting->op_prop[3].mul = 1.000000;
-    setting->op_prop[3].vel_to_tl = 0.000000;
-    setting->op_prop[3].am = 0.000000;
-    setting->op_prop[3].mw = 0.000000;
-    setting->op_prop[3].vel = 0.000000;
 
     setting = &channelSettings[1];
 
@@ -1071,7 +1053,7 @@ void FmSynth_Init(void)
     setting->op_prop[0].rs = 50;
     setting->op_prop[0].tl = 0.999998;
     setting->op_prop[0].mul = 1.000000;
-    setting->op_prop[0].vel_to_tl = 0.000000;
+    setting->op_prop[0].vel_to_tl = 0.900000;
     setting->op_prop[0].am = 0.000000;
     setting->op_prop[0].mw = 0.000000;
     setting->op_prop[0].vel = 0.000000;
@@ -1083,7 +1065,7 @@ void FmSynth_Init(void)
     setting->op_prop[1].rs = 50;
     setting->op_prop[1].tl = 0.251968;
     setting->op_prop[1].mul = 1.010000;
-    setting->op_prop[1].vel_to_tl = 0.000000;
+    setting->op_prop[1].vel_to_tl = 0.900000;
     setting->op_prop[1].am = 0.000000;
     setting->op_prop[1].mw = 0.000000;
     setting->op_prop[1].vel = 0.000000;
@@ -1095,7 +1077,7 @@ void FmSynth_Init(void)
     setting->op_prop[2].rs = 50;
     setting->op_prop[2].tl = 0.330708;
     setting->op_prop[2].mul = 2.000000;
-    setting->op_prop[2].vel_to_tl = 0.000000;
+    setting->op_prop[2].vel_to_tl = 0.900000;
     setting->op_prop[2].am = 0.000000;
     setting->op_prop[2].mw = 0.000000;
     setting->op_prop[2].vel = 0.000000;
@@ -1393,6 +1375,10 @@ void FmSynth_Process(float *left, int bufLen)
     float pitchVar = pitchBendValue + FmSynth_GetModulationPitchMultiplier();
     pitchMultiplier = pow(2.0f, pitchVar / 12.0f);
 
+    float ampVar = tremoloDepth * tremoloAmp * (SineNorm((tremoloSpeed * ((float)millis()) / 1000.0f)));
+    float ampMultiplier = pow(2.0f, ampVar);
+    
+
     for (int n = 0; n < bufLen; n++)
     {
 #ifdef PRESSURE_SENSOR_ENABLED
@@ -1411,7 +1397,7 @@ void FmSynth_Process(float *left, int bufLen)
                 osc->pitchCalc = osc->op_prop->mul * osc->pitch * pitchMultiplier;
                 FmSynth_ProcessOperator(left, n, osc);
                 {
-                    osc->out = osc->sine_preoout * osc->op_prop->tl * osc->lvl_env * osc->vel;
+                    osc->out = osc->sine_preoout * osc->op_prop->tl * osc->lvl_env * osc->vel * ampMultiplier;
 #ifdef PRESSURE_SENSOR_ENABLED
                     osc->out *= pressureValueFilt;
 #endif
@@ -1606,6 +1592,18 @@ void FmSynth_ModulationSpeed(uint8_t ch, float value)
 {
     modulationSpeed = pow(2, value * 8);
     Status_ValueChangedFloat("modulationSpeed", modulationSpeed);
+}
+
+void FmSynth_TremoloWheel(uint8_t ch, float value)
+{
+    tremoloDepth = value;
+    Status_ValueChangedFloat("tremoloDepth", tremoloDepth);
+}
+
+void FmSynth_TremoloSpeed(uint8_t ch, float value)
+{
+    tremoloSpeed = pow(2, value * 8);
+    Status_ValueChangedFloat("tremoloSpeed", tremoloSpeed);
 }
 
 #ifdef PRESSURE_SENSOR_ENABLED

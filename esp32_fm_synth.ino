@@ -213,8 +213,10 @@ auto bleepTimer = timer_create_default();
 #define KEY6 5
 
 
-static int curChannel = 11;
-static int lastChannel = 11;
+static int curChannel = 0;
+static int lastChannel = 0;
+
+static int maxBleepWaitMs = 12000;
 
 /* this application starts here */
 void setup()
@@ -321,11 +323,18 @@ void setup()
     Reverb_SetLevel(1, .5);
     FmSynth_NoteOn(curChannel, 1, 0.0f);
     FmSynth_NoteOff(curChannel, 1);
+    delay(50);
+    Delay_SetInputLevel(1, 0.74f);
+    Delay_SetLength(1, 0.717f);
+    Delay_SetOutputLevel(1, 0.5f);
+    Delay_SetFeedback(1, 0.5f);
+    FmSynth_TremoloWheel(1, .2);
+    FmSynth_TremoloSpeed(1, .15);
 
     delay(125);
     
     loop_8sec(NULL);
-    bleepSequenceTimer.in(random(8000), doBleepSequence);
+    bleepSequenceTimer.in(random(maxBleepWaitMs), doBleepSequence);
 }
 
 #ifdef ESP32
@@ -635,7 +644,7 @@ return true;
 }
 
 static int *lastChord = NULL;
-
+static bool enableChords = true;
 bool loop_8sec(void *)
 {
         int *chord = lastChord;
@@ -650,6 +659,9 @@ bool loop_8sec(void *)
             Serial.println("");
         }
         lastChannel = curChannel;
+        if (!enableChords) {
+            return true;
+        }
         Serial.printf("Playing chord on channel %d\n", curChannel);
 
         if (lastChord == NULL) {
@@ -692,7 +704,7 @@ bool loop_8sec(void *)
         for (int i = 0; i < 4; i++) {
             Serial.printf(" %d", chord[i]);
             if (chord[i]!=0) {
-                 FmSynth_NoteOn(curChannel, chord[i]-24, 1.0f);
+                 FmSynth_NoteOn(curChannel, chord[i]-12, 1.0f);
             }
         }
         Serial.println();
@@ -704,12 +716,15 @@ static int bleepCount;
 static int bleepChan;
 static int bleepNote;
 static bool bleepPlaying = false;
+static bool enableBleeps = true;
+
 bool doBleepSequence(void *) {
-    if (lastChord == NULL) {
+    if (lastChord == NULL || !enableBleeps) {
+      bleepSequenceTimer.in(random(maxBleepWaitMs), doBleepSequence);
       return true;
     }
     int bleepDur = random(400);
-    bleepChan = 7;
+    bleepChan = 13;
 
     // Pick random note, if it's a triad ignore the 4th note (0).
     if (lastChord[3] == 0) {
@@ -718,8 +733,8 @@ bool doBleepSequence(void *) {
         bleepNote = lastChord[random(4)];
     }
     
-    if (bleepDur < 200) {
-        bleepCount = random(10);
+    if (bleepDur < 150) {
+        bleepCount = random(10)+2;
     } else {
         bleepCount = 1;
     }
@@ -735,13 +750,13 @@ bool doBleep(void *) {
     bleepPlaying = (bleepCount > 0);
     if (!bleepPlaying) {
         // Schedule a new bleep sequence.
-        bleepSequenceTimer.in(random(8000), doBleepSequence);
+        bleepSequenceTimer.in(random(maxBleepWaitMs), doBleepSequence);
         return false;
     }
 
     Serial.printf("bleeping. count=%d, note=%d, chan=%d\n", bleepCount, bleepNote, bleepChan);
 
-    FmSynth_NoteOn(bleepChan, bleepNote, 100);
+    FmSynth_NoteOn(bleepChan, bleepNote, .5);
     bleepCount--;
     return true;
 }
@@ -756,20 +771,29 @@ void loop()
     bleepSequenceTimer.tick();
     bleepTimer.tick();
 
-    static int sensorVal = 1;
+    static int key1val = 1;
+    static int key2val = 1;
+    static int key3val = 1;
 
     int newVal = digitalRead(KEY1);
-    if (sensorVal == 1 && newVal == 0) {
-      // Key 1 was just pressed.
-      curChannel = (curChannel % 16) + 1;
-      char numberArray[2];
-      itoa(curChannel, numberArray, 10);
-      Serial.printf("Switched channel to %s\n", numberArray);
-      sensorVal = newVal;
+    if (key1val == 1 && newVal == 0) {
+      enableBleeps = !enableBleeps;
+      Serial.printf("enableBleeps = %d\n", enableBleeps);
+      key1val = newVal;
     } else if (newVal == 1) {
-      sensorVal = newVal;
+      key1val = newVal;
+    }
+
+    newVal = digitalRead(KEY2);
+    if (key2val == 1 && newVal == 0) {
+      enableChords = !enableChords;
+      Serial.printf("enableChords = %d\n", enableChords);
+      key2val = newVal;
+    } else if (newVal == 1) {
+      key2val = newVal;
     }
  
+
 
     Midi_Process();
 
