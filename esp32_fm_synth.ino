@@ -54,10 +54,9 @@
 #include <FS.h>
 #include <SD_MMC.h>
 #include <WiFi.h>
-
+#include <FastLED.h>
 
 extern void Status_ValueChangedFloat(const char *descr, float value);
-
 
 /* requires the ML_SynthTools library: https://github.com/marcel-licence/ML_SynthTools */
 #include <ml_arp.h>
@@ -186,6 +185,15 @@ static int chords[N_CHORDS][4] = {
     {96,98,101,105}
 };
 
+// The LED strips have 160 LEDs per meter.
+// The numerical suffix X (LEDSX) indicates which IO pin the strip is attached to.
+#define NUM_LEDS0 160 // 1 meter long
+CRGB leds0[NUM_LEDS0];
+#define NUM_LEDS5 800 // 5 meters long
+CRGB leds5[NUM_LEDS5];
+int led_tick = 0;
+#define LED_COLOR_ORDER GRB
+
 void button1(){
   Serial.println("one"); 
 }
@@ -199,7 +207,7 @@ void button4(){
   Serial.println("four"); 
 }
 
-
+auto timer20ms = timer_create_default();
 auto timer1sec = timer_create_default();
 auto timer8sec = timer_create_default();
 auto bleepSequenceTimer = timer_create_default();
@@ -212,7 +220,6 @@ auto bleepTimer = timer_create_default();
 #define KEY5 18
 #define KEY6 5
 
-
 static int curChannel = 11;
 static int lastChannel = 11;
 
@@ -222,6 +229,14 @@ void setup()
     // put your setup code here, to run once:
     delay(500);
 
+    FastLED.addLeds<WS2812B, 0, LED_COLOR_ORDER>(leds0, NUM_LEDS0);
+    FastLED.addLeds<WS2812B, 5, LED_COLOR_ORDER>(leds5, NUM_LEDS5);
+
+    FastLED.setBrightness(10); // 0-255
+    FastLED.clear();  // clear all pixel data
+    FastLED.show();
+
+    timer20ms.every(20, loop_20ms);
     timer1sec.every(1000, loop_1Hz);
     timer8sec.every(8000, loop_8sec);
 
@@ -618,6 +633,28 @@ inline void audio_task()
     Status_Process_Sample(SAMPLE_BUFFER_SIZE);
 }
 
+bool loop_20ms(void *)
+{
+    leds0[mod(led_tick, NUM_LEDS0)] = CRGB::Red; 
+    leds0[mod(led_tick - 50, NUM_LEDS0)] = CRGB::Green; 
+    
+    leds5[mod(led_tick, NUM_LEDS5)] = CRGB::Blue; 
+    leds5[mod(led_tick - 100, NUM_LEDS5)] = CRGB::Red; 
+
+    FastLED.show();
+    led_tick += 1;
+    return true;
+}
+
+// Returns a % b.
+// C modulo operator (%) doesn't work as expected with negative numbers, so implement our own:
+// https://stackoverflow.com/questions/11720656/modulo-operation-with-negative-numbers
+int mod(int a, int b)
+{
+    int r = a % b;
+    return r < 0 ? r + b : r;
+}
+
 /*
  * this function will be called once a second
  * call can be delayed when one operation needs more time (> 1/44100s)
@@ -751,6 +788,7 @@ bool doBleep(void *) {
  */
 void loop()
 {
+    timer20ms.tick();
     timer1sec.tick();
     timer8sec.tick();
     bleepSequenceTimer.tick();
