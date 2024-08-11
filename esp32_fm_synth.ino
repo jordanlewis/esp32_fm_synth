@@ -723,7 +723,7 @@ bool doBleepSequence(void *) {
       bleepSequenceTimer.in(random(maxBleepWaitMs), doBleepSequence);
       return true;
     }
-    int bleepDur = random(400);
+    int bleepDur = random(400) + 20;
     bleepChan = 13;
 
     // Pick random note, if it's a triad ignore the 4th note (0).
