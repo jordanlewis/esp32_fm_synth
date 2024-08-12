@@ -191,8 +191,15 @@ static int chords[N_CHORDS][4] = {
 CRGB leds0[NUM_LEDS0];
 #define NUM_LEDS5 800 // 5 meters long
 CRGB leds5[NUM_LEDS5];
-int led_tick = 0;
+unsigned int led_tick = 0;
 #define LED_COLOR_ORDER GRB
+#define LED_TRAIN_LENGTH_FRACTION 10
+int led_train_length0;
+int led_train_length5;
+int led_train_head0 = 0;
+int led_train_head5 = 0;
+CRGB led_traint_color0 = CRGB::Green;
+CRGB led_traint_color5 = CRGB::Red;
 
 void button1(){
   Serial.println("one"); 
@@ -207,7 +214,7 @@ void button4(){
   Serial.println("four"); 
 }
 
-auto timer20ms = timer_create_default();
+auto timerLeds = timer_create_default();
 auto timer1sec = timer_create_default();
 auto timer8sec = timer_create_default();
 auto bleepSequenceTimer = timer_create_default();
@@ -236,7 +243,11 @@ void setup()
     FastLED.clear();  // clear all pixel data
     FastLED.show();
 
-    timer20ms.every(20, loop_20ms);
+    led_train_length0 = divRoundClosest(NUM_LEDS0, LED_TRAIN_LENGTH_FRACTION);
+    led_train_length5 = divRoundClosest(NUM_LEDS5, LED_TRAIN_LENGTH_FRACTION);
+    Serial.printf("Using train lengths %d and %d\n", led_train_length0, led_train_length5);
+
+    timerLeds.every(100, loop_Leds);
     timer1sec.every(1000, loop_1Hz);
     timer8sec.every(8000, loop_8sec);
 
@@ -633,18 +644,58 @@ inline void audio_task()
     Status_Process_Sample(SAMPLE_BUFFER_SIZE);
 }
 
-bool loop_20ms(void *)
+bool loop_Leds(void *)
 {
-    leds0[mod(led_tick, NUM_LEDS0)] = CRGB::Red; 
-    leds0[mod(led_tick - 50, NUM_LEDS0)] = CRGB::Green; 
+    // leds0[mod(led_tick, NUM_LEDS0)] = CRGB::Red; 
+    // leds0[mod(led_tick - 50, NUM_LEDS0)] = CRGB::Green; 
     
-    leds5[mod(led_tick, NUM_LEDS5)] = CRGB::Blue; 
-    leds5[mod(led_tick - 100, NUM_LEDS5)] = CRGB::Red; 
+    // leds5[mod(led_tick, NUM_LEDS5)] = CRGB::Blue; 
+    // leds5[mod(led_tick - 100, NUM_LEDS5)] = CRGB::Red; 
+
+    int led_train_tail0 = led_train_head0 - led_train_length0;
+    int train0_mid_pt;
+    int distance_to_mid_pt;
+    CRGB train0_color = CRGB::Red;
+
+    // This formula works regardless of whether the train length is even or odd. In the even case, 
+    // we take advantage of integer truncation.
+    // TODO: we have an off by one error somewhere
+    // https://gist.github.com/dasl-/d2e0897c8b5e5ce9d2c33ca4a71d398e
+    int steps_to_fade_train = led_train_length0 / 2;
+    for (int i = 0; i < NUM_LEDS0; i++)
+    {
+        if (led_train_tail0 <= i && i <= led_train_head0) {
+                
+            // Hop aboard the train
+            train0_mid_pt = led_train_tail0 + steps_to_fade_train;
+            if (led_train_length0 % 2 == 1) {
+                // train has single mid-point
+                distance_to_mid_pt = abs(train0_mid_pt - i);
+            } else {
+                // train has two mid-points
+                if (i <= train0_mid_pt) {
+                    distance_to_mid_pt = train0_mid_pt - i;
+                } else {
+                    distance_to_mid_pt = i - (train0_mid_pt + 1);
+                }
+            }
+
+            leds0[i] = CRGB::Red;
+            leds0[i] = leds0[i].fadeLightBy(255 / steps_to_fade_train * distance_to_mid_pt);
+            Serial.printf("Set led %d to red: %d\n", i, leds0[i].r);
+        } else {
+            leds0[i] = CRGB::Black;
+        }
+    }
 
     FastLED.show();
+    led_train_head0 += 1;
+    led_train_head5 += 1;
     led_tick += 1;
     return true;
 }
+
+
 
 // Returns a % b.
 // C modulo operator (%) doesn't work as expected with negative numbers, so implement our own:
@@ -653,6 +704,13 @@ int mod(int a, int b)
 {
     int r = a % b;
     return r < 0 ? r + b : r;
+}
+
+// Returns `n / d` rounded to the closest integer
+// https://stackoverflow.com/a/18067292
+int divRoundClosest(const int n, const int d)
+{
+  return ((n < 0) == (d < 0)) ? ((n + d/2)/d) : ((n - d/2)/d);
 }
 
 /*
@@ -788,7 +846,7 @@ bool doBleep(void *) {
  */
 void loop()
 {
-    timer20ms.tick();
+    timerLeds.tick();
     timer1sec.tick();
     timer8sec.tick();
     bleepSequenceTimer.tick();
