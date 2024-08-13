@@ -319,18 +319,20 @@ void setup()
 
 
 
-    FmSynth_ModulationWheel(1, .01);
-    FmSynth_ModulationSpeed(1, .01);
-    Reverb_SetLevel(1, .5);
+
     FmSynth_NoteOn(curChannel, 1, 0.0f);
     FmSynth_NoteOff(curChannel, 1);
     delay(50);
+
+    FmSynth_ModulationWheel(1, .039);
+    FmSynth_ModulationSpeed(1, .196);
+    Reverb_SetLevel(1, .8);
     Delay_SetInputLevel(1, 0.74f);
     Delay_SetLength(1, 0.717f);
     Delay_SetOutputLevel(1, 0.5f);
     Delay_SetFeedback(1, 0.5f);
-    FmSynth_TremoloWheel(1, .2);
-    FmSynth_TremoloSpeed(1, .15);
+    FmSynth_TremoloWheel(1, .094);
+    FmSynth_TremoloSpeed(1, .157);
 
     delay(125);
     

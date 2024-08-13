@@ -346,14 +346,14 @@ void FmSynth_Init(void)
     /* Simple Sine wave pad */
     setting->algo = 0;
     setting->fmFeedback = 0;
-    setting->op_prop[0].ar = 2025;
-    setting->op_prop[0].d1r = 1866;
+    setting->op_prop[0].ar = 1735;
+    setting->op_prop[0].d1r = 1735;
     setting->op_prop[0].d2l = 1.000000;
-    setting->op_prop[0].d2r = 3050;
+    setting->op_prop[0].d2r = 3470;
     setting->op_prop[0].rr = 1;
     setting->op_prop[0].rs = 50.000000;
-    setting->op_prop[0].tl = 0.900000;
-    setting->op_prop[0].mul = 0.5000000;
+    setting->op_prop[0].tl = 0.700000;
+    setting->op_prop[0].mul = 1; // 0.5000000;
     setting->op_prop[0].vel_to_tl = 0.000000;
     setting->op_prop[0].am = 0.000000;
     setting->op_prop[0].mw = 0.000000;
@@ -364,7 +364,7 @@ void FmSynth_Init(void)
     setting->op_prop[1].d2r = 32767;
     setting->op_prop[1].rr = 1;
     setting->op_prop[1].rs = 50.000000;
-    setting->op_prop[1].tl = 0.110000;
+    setting->op_prop[1].tl = 0.070000;
     setting->op_prop[1].mul = 0.5000000;
     setting->op_prop[1].vel_to_tl = 0.000000;
     setting->op_prop[1].am = 0.000000;
@@ -1394,6 +1394,10 @@ void FmSynth_Process(float *left, int bufLen)
             for (int i = 0; i < 4; i++)
             {
                 struct synthTone_s *osc = &voice->op[i];
+                if (osc->op_prop->tl == 0) {
+                    osc->out = 0;
+                    continue;
+                }
                 osc->pitchCalc = osc->op_prop->mul * osc->pitch * pitchMultiplier;
                 FmSynth_ProcessOperator(left, n, osc);
                 {
