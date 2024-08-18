@@ -240,6 +240,7 @@ void setup()
     FastLED.addLeds<WS2812B, 5, LED_COLOR_ORDER>(leds5, NUM_LEDS5);
 
     FastLED.setBrightness(10); // 0-255
+    // FastLED.setDither( 0 );
     FastLED.clear();  // clear all pixel data
     FastLED.show();
 
@@ -851,6 +852,10 @@ void loop()
     timer8sec.tick();
     bleepSequenceTimer.tick();
     bleepTimer.tick();
+
+    // https://github.com/FastLED/FastLED/wiki/FastLED-Temporal-Dithering
+    // > The more often your code calls FastLED.show(), or FastLED.delay(), the higher-quality the dithering will be
+    FastLED.show();
 
     static int sensorVal = 1;
 
