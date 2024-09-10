@@ -185,6 +185,26 @@ static int chords[N_CHORDS][4] = {
     {96,98,101,105}
 };
 
+// LED gamma correction: https://learn.adafruit.com/led-tricks-gamma-correction/the-quick-fix
+// We don't use PROGMEM because it's slower and we are not RAM limited.
+const uint8_t gamma8[] = {
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,
+    1,  1,  1,  1,  1,  1,  1,  1,  1,  2,  2,  2,  2,  2,  2,  2,
+    2,  3,  3,  3,  3,  3,  3,  3,  4,  4,  4,  4,  4,  5,  5,  5,
+    5,  6,  6,  6,  6,  7,  7,  7,  7,  8,  8,  8,  9,  9,  9, 10,
+   10, 10, 11, 11, 11, 12, 12, 13, 13, 13, 14, 14, 15, 15, 16, 16,
+   17, 17, 18, 18, 19, 19, 20, 20, 21, 21, 22, 22, 23, 24, 24, 25,
+   25, 26, 27, 27, 28, 29, 29, 30, 31, 32, 32, 33, 34, 35, 35, 36,
+   37, 38, 39, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 50,
+   51, 52, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 66, 67, 68,
+   69, 70, 72, 73, 74, 75, 77, 78, 79, 81, 82, 83, 85, 86, 87, 89,
+   90, 92, 93, 95, 96, 98, 99,101,102,104,105,107,109,110,112,114,
+  115,117,119,120,122,124,126,127,129,131,133,135,137,138,140,142,
+  144,146,148,150,152,154,156,158,160,162,164,167,169,171,173,175,
+  177,180,182,184,186,189,191,193,196,198,200,203,205,208,210,213,
+  215,218,220,223,225,228,231,233,236,239,241,244,247,249,252,255 };
+
 // The LED strips have 160 LEDs per meter.
 // The numerical suffix X (LEDSX) indicates which IO pin the strip is attached to.
 #define NUM_LEDS0 160 // 1 meter long
@@ -193,7 +213,7 @@ CRGB leds0[NUM_LEDS0];
 CRGB leds5[NUM_LEDS5];
 unsigned int led_tick = 0;
 #define LED_COLOR_ORDER GRB
-#define LED_TRAIN_LENGTH_FRACTION 10
+#define LED_TRAIN_LENGTH_FRACTION 5
 int led_train_length0;
 int led_train_length5;
 int led_train_head0 = 0;
@@ -239,14 +259,13 @@ void setup()
     FastLED.addLeds<WS2812B, 0, LED_COLOR_ORDER>(leds0, NUM_LEDS0);
     FastLED.addLeds<WS2812B, 5, LED_COLOR_ORDER>(leds5, NUM_LEDS5);
 
-    FastLED.setBrightness(10); // 0-255
+    FastLED.setBrightness(50); // 0-255
     // FastLED.setDither( 0 );
     FastLED.clear();  // clear all pixel data
     FastLED.show();
 
     led_train_length0 = divRoundClosest(NUM_LEDS0, LED_TRAIN_LENGTH_FRACTION);
     led_train_length5 = divRoundClosest(NUM_LEDS5, LED_TRAIN_LENGTH_FRACTION);
-    Serial.printf("Using train lengths %d and %d\n", led_train_length0, led_train_length5);
 
     timerLeds.every(100, loop_Leds);
     timer1sec.every(1000, loop_1Hz);
@@ -267,6 +286,7 @@ void setup()
     Serial.println();
 
     Serial.printf("Loading data\n");
+    Serial.printf("Using train lengths %d and %d\n", led_train_length0, led_train_length5);
 
 
     click_supp_gain = 0.0f;
@@ -653,39 +673,48 @@ bool loop_Leds(void *)
     // leds5[mod(led_tick, NUM_LEDS5)] = CRGB::Blue; 
     // leds5[mod(led_tick - 100, NUM_LEDS5)] = CRGB::Red; 
 
-    int led_train_tail0 = led_train_head0 - led_train_length0;
+    int led_train_tail0 = led_train_head0 - led_train_length0 + 1;
     int train0_mid_pt;
     int distance_to_mid_pt;
     CRGB train0_color = CRGB::Red;
 
-    // This formula works regardless of whether the train length is even or odd. In the even case, 
+    // This formula works regardless of whether the train length is even or odd. In the odd case, 
     // we take advantage of integer truncation.
     // TODO: we have an off by one error somewhere
     // https://gist.github.com/dasl-/d2e0897c8b5e5ce9d2c33ca4a71d398e
-    int steps_to_fade_train = led_train_length0 / 2;
+    int steps_to_fade_train = (led_train_length0 + 1) / 2; // TODO odd case = 3
+    int fade_amount_per_step = divRoundClosest(255, steps_to_fade_train);
+    bool is_odd = led_train_length0 % 2 == 1;
+    CRGB train_color = CRGB::Red;
+    CRGB background_color = CRGB::Blue;
+    background_color = background_color.fadeLightBy(240);
     for (int i = 0; i < NUM_LEDS0; i++)
     {
         if (led_train_tail0 <= i && i <= led_train_head0) {
                 
             // Hop aboard the train
-            train0_mid_pt = led_train_tail0 + steps_to_fade_train;
-            if (led_train_length0 % 2 == 1) {
+            train0_mid_pt = is_odd ? led_train_tail0 + steps_to_fade_train - 1 : led_train_tail0 + steps_to_fade_train;
+            if (is_odd) {
                 // train has single mid-point
                 distance_to_mid_pt = abs(train0_mid_pt - i);
             } else {
                 // train has two mid-points
-                if (i <= train0_mid_pt) {
-                    distance_to_mid_pt = train0_mid_pt - i;
+                if (i == train0_mid_pt || i == (train0_mid_pt - 1)) {
+                    distance_to_mid_pt = 0;
+                } else if (i < train0_mid_pt) {
+                    distance_to_mid_pt = (train0_mid_pt - 1) - i;
                 } else {
-                    distance_to_mid_pt = i - (train0_mid_pt + 1);
+                    distance_to_mid_pt = i - train0_mid_pt;
                 }
             }
 
-            leds0[i] = CRGB::Red;
-            leds0[i] = leds0[i].fadeLightBy(255 / steps_to_fade_train * distance_to_mid_pt);
+            CRGB this_pixel_color = train_color;
+            this_pixel_color.fadeLightBy(fade_amount_per_step * distance_to_mid_pt);
+            // https://github.com/FastLED/FastLED/wiki/Pixel-reference#dimming-and-brightening-colors
+            leds0[i] = scaleGamma(this_pixel_color);
             Serial.printf("Set led %d to red: %d\n", i, leds0[i].r);
         } else {
-            leds0[i] = CRGB::Black;
+            leds0[i] = background_color;    
         }
     }
 
@@ -696,7 +725,13 @@ bool loop_Leds(void *)
     return true;
 }
 
-
+CRGB scaleGamma(CRGB color)
+{
+    color.r = gamma8[color.r];
+    color.g = gamma8[color.g];
+    color.b = gamma8[color.b];
+    return color;
+}
 
 // Returns a % b.
 // C modulo operator (%) doesn't work as expected with negative numbers, so implement our own:
