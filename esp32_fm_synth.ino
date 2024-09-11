@@ -54,10 +54,9 @@
 #include <FS.h>
 #include <SD_MMC.h>
 #include <WiFi.h>
-
+#include <FastLED.h>
 
 extern void Status_ValueChangedFloat(const char *descr, float value);
-
 
 /* requires the ML_SynthTools library: https://github.com/marcel-licence/ML_SynthTools */
 #include <ml_arp.h>
@@ -186,6 +185,41 @@ static int chords[N_CHORDS][4] = {
     {86,89,93,84}
 };
 
+// LED gamma correction: https://learn.adafruit.com/led-tricks-gamma-correction/the-quick-fix
+// We don't use PROGMEM because it's slower and we are not RAM limited.
+const uint8_t gamma8[] = {
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,
+    1,  1,  1,  1,  1,  1,  1,  1,  1,  2,  2,  2,  2,  2,  2,  2,
+    2,  3,  3,  3,  3,  3,  3,  3,  4,  4,  4,  4,  4,  5,  5,  5,
+    5,  6,  6,  6,  6,  7,  7,  7,  7,  8,  8,  8,  9,  9,  9, 10,
+   10, 10, 11, 11, 11, 12, 12, 13, 13, 13, 14, 14, 15, 15, 16, 16,
+   17, 17, 18, 18, 19, 19, 20, 20, 21, 21, 22, 22, 23, 24, 24, 25,
+   25, 26, 27, 27, 28, 29, 29, 30, 31, 32, 32, 33, 34, 35, 35, 36,
+   37, 38, 39, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 50,
+   51, 52, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 66, 67, 68,
+   69, 70, 72, 73, 74, 75, 77, 78, 79, 81, 82, 83, 85, 86, 87, 89,
+   90, 92, 93, 95, 96, 98, 99,101,102,104,105,107,109,110,112,114,
+  115,117,119,120,122,124,126,127,129,131,133,135,137,138,140,142,
+  144,146,148,150,152,154,156,158,160,162,164,167,169,171,173,175,
+  177,180,182,184,186,189,191,193,196,198,200,203,205,208,210,213,
+  215,218,220,223,225,228,231,233,236,239,241,244,247,249,252,255 };
+
+// The LED strips have 160 LEDs per meter.
+#define NUM_LEDS 160 // 1 meter long
+CRGB leds[NUM_LEDS];
+// #define NUM_LEDS5 800 // 5 meters long
+unsigned int chord_counter = 0;
+#define LED_COLOR_ORDER GRB
+
+// A value of N indicates the LED train will be 1/N of the strip length
+#define LED_TRAIN_LENGTH_FRACTION 5 
+
+int led_train_length;
+int led_train_head = 0;
+CRGB led_train_color = CRGB::Red;
+CRGB led_background_color = CRGB::Blue;
+
 void button1(){
   Serial.println("one"); 
 }
@@ -199,7 +233,7 @@ void button4(){
   Serial.println("four"); 
 }
 
-
+auto timerLeds = timer_create_default();
 auto timer1sec = timer_create_default();
 auto timer8sec = timer_create_default();
 auto timerRestartChord = timer_create_default();
@@ -213,7 +247,6 @@ auto bleepTimer = timer_create_default();
 #define KEY5 18
 #define KEY6 5
 
-
 static int curChannel = 0;
 static int lastChannel = 0;
 
@@ -224,6 +257,8 @@ void setup()
 {
     // put your setup code here, to run once:
     delay(250);
+    Serial.begin(SERIAL_BAUDRATE);
+    Serial.println();
 
     timer1sec.every(1000, loop_1Hz);
     timer8sec.every(8000, loop_8sec);
@@ -235,16 +270,9 @@ void setup()
     pinMode(KEY5,INPUT_PULLUP);
     pinMode(KEY6,INPUT_PULLUP);
 
-
     heap_caps_print_heap_info(MALLOC_CAP_8BIT);
 
-    Serial.begin(SERIAL_BAUDRATE);
-
-    Serial.println();
-
     Serial.printf("Loading data\n");
-
-
     click_supp_gain = 0.0f;
 
 #ifdef BLINK_LED_PIN
@@ -317,9 +345,6 @@ void setup()
 
     Core0TaskInit();
 
-
-
-
     FmSynth_NoteOn(curChannel, 1, 0.0f);
     FmSynth_NoteOff(curChannel, 1);
     delay(50);
@@ -340,60 +365,79 @@ void setup()
     bleepSequenceTimer.in(random(maxBleepWaitMs), doBleepSequence);
 }
 
+void setupLeds()
+{
+    FastLED.addLeds<WS2812B, 0, LED_COLOR_ORDER>(leds, NUM_LEDS);
+
+    FastLED.setBrightness(50); // 0-255
+    
+    // TODO: ideally comment this out to enable dithering... But seeing flicker when running dithering in conjunction 
+    // with audio. Maybe I need to replace delay(...) w/ FastLED.delay(...) throughout the codebase??
+    FastLED.setDither( 0 ); 
+    FastLED.clear();  // clear all pixel data
+    FastLED.show();
+
+    led_train_length = divRoundClosest(NUM_LEDS, LED_TRAIN_LENGTH_FRACTION);
+
+    timerLeds.every(100, loopLeds);
+}
+
 #ifdef ESP32
 /*
  * Core 0
  */
 /* this is used to add a task to core 0 */
 TaskHandle_t Core0TaskHnd;
-
 inline
 void Core0TaskInit()
 {
     /* we need a second task for the terminal output */
-    xTaskCreatePinnedToCore(Core0Task, "CoreTask0", 8000, NULL, 999, &Core0TaskHnd, 0);
+    xTaskCreatePinnedToCore(Core0Task, "Core0Task", 8192, NULL, 999, &Core0TaskHnd, 0);
 }
 
 inline
 void Core0TaskSetup()
 {
-    /*
-     * init your stuff for core0 here
-     */
+    Serial.printf("Setting up Core0\n");
+    setupLeds();
+    Serial.printf("Done setting up Core0\n");
 
-#ifdef OLED_OSC_DISP_ENABLED
-    ScopeOled_Setup();
-#endif
+// #ifdef OLED_OSC_DISP_ENABLED
+//     ScopeOled_Setup();
+// #endif
 
-    Status_Setup();
+//     Status_Setup();
 
-#ifdef MIDI_VIA_USB_ENABLED
-    usb_setup();
-    MIDI_setShortMsgHandler(HandleShortMsg);
-#endif
+// #ifdef MIDI_VIA_USB_ENABLED
+//     usb_setup();
+//     MIDI_setShortMsgHandler(HandleShortMsg);
+// #endif
 
-#ifdef PRESSURE_SENSOR_ENABLED
-    PressureSetup();
-#endif
+// #ifdef PRESSURE_SENSOR_ENABLED
+//     PressureSetup();
+// #endif
 }
 
 void Core0TaskLoop()
 {
-    /*
-     * put your loop stuff for core0 here
-     */
-    Status_Process();
-#ifdef MIDI_VIA_USB_ENABLED
-    usb_loop();
-#endif
+    timerLeds.tick();
+    
+    // https://github.com/FastLED/FastLED/wiki/FastLED-Temporal-Dithering
+    // > The more often your code calls FastLED.show(), or FastLED.delay(), the higher-quality the dithering will be
+    FastLED.show();
 
-#ifdef OLED_OSC_DISP_ENABLED
-    ScopeOled_Process();
-#endif
+//     Status_Process();
+// #ifdef MIDI_VIA_USB_ENABLED
+//     usb_loop();
+// #endif
 
-#ifdef PRESSURE_SENSOR_ENABLED
-    PressureLoop();
-#endif
+// #ifdef OLED_OSC_DISP_ENABLED
+//     ScopeOled_Process();
+// #endif
+
+// #ifdef PRESSURE_SENSOR_ENABLED
+//     PressureLoop();
+// #endif
 }
 
 void Core0Task(void *parameter)
@@ -706,6 +750,7 @@ bool startChord(void *)
 
 bool loop_8sec(void *)
 {
+        chord_counter++;
         int *chord = lastChord;
         if (chord != NULL) {
             Serial.printf("Have last chord");
@@ -776,6 +821,80 @@ bool doBleep(void *) {
     return true;
 }
 
+bool loopLeds(void *)
+{
+    int led_train_tail = led_train_head - led_train_length + 1;
+    int train_mid_pt;
+    int distance_to_mid_pt;
+
+    // This formula works regardless of whether the train length is even or odd. In the odd case, 
+    // we take advantage of integer truncation.
+    // TODO: we have an off by one error somewhere
+    // https://gist.github.com/dasl-/d2e0897c8b5e5ce9d2c33ca4a71d398e
+    int steps_to_fade_train = (led_train_length + 1) / 2; // TODO odd case = 3
+    int fade_amount_per_step = divRoundClosest(255, steps_to_fade_train);
+    bool is_odd = led_train_length % 2 == 1;
+    led_background_color = CRGB::Blue;
+    led_background_color = led_background_color.fadeLightBy(240);
+    for (int i = 0; i < NUM_LEDS; i++)
+    {
+        if (led_train_tail <= i && i <= led_train_head) {
+
+            // Hop aboard the train
+            train_mid_pt = is_odd ? led_train_tail + steps_to_fade_train - 1 : led_train_tail + steps_to_fade_train;
+            if (is_odd) {
+                // train has single mid-point
+                distance_to_mid_pt = abs(train_mid_pt - i);
+            } else {
+                // train has two mid-points
+                if (i == train_mid_pt || i == (train_mid_pt - 1)) {
+                    distance_to_mid_pt = 0;
+                } else if (i < train_mid_pt) {
+                    distance_to_mid_pt = (train_mid_pt - 1) - i;
+                } else {
+                    distance_to_mid_pt = i - train_mid_pt;
+                }
+            }
+
+            CRGB this_pixel_color = led_train_color;
+            this_pixel_color.fadeLightBy(fade_amount_per_step * distance_to_mid_pt);
+            // https://github.com/FastLED/FastLED/wiki/Pixel-reference#dimming-and-brightening-colors
+            leds[i] = scaleGamma(this_pixel_color);
+            // Serial.printf("Set led %d to red: %d\n", i, leds[i].r);
+        } else {
+            leds[i] = led_background_color;    
+        }
+    }
+
+    FastLED.show();
+    led_train_head += 1;
+    return true;
+}
+
+CRGB scaleGamma(CRGB color)
+{
+    color.r = gamma8[color.r];
+    color.g = gamma8[color.g];
+    color.b = gamma8[color.b];
+    return color;
+}
+
+// Returns a % b.
+// C modulo operator (%) doesn't work as expected with negative numbers, so implement our own:
+// https://stackoverflow.com/questions/11720656/modulo-operation-with-negative-numbers
+int mod(int a, int b)
+{
+    int r = a % b;
+    return r < 0 ? r + b : r;
+}
+
+// Returns `n / d` rounded to the closest integer
+// https://stackoverflow.com/a/18067292
+int divRoundClosest(const int n, const int d)
+{
+  return ((n < 0) == (d < 0)) ? ((n + d/2)/d) : ((n - d/2)/d);
+}
+
 /*
  * this is the main loop
  */
@@ -809,8 +928,6 @@ void loop()
       key2val = newVal;
     }
  
-
-
     Midi_Process();
 
 #ifdef MIDI_STREAM_PLAYER_ENABLED
