@@ -260,9 +260,6 @@ void setup()
     Serial.begin(SERIAL_BAUDRATE);
     Serial.println();
 
-    timer1sec.every(1000, loop_1Hz);
-    timer8sec.every(8000, loop_8sec);
-
     pinMode(KEY1,INPUT_PULLUP);
     pinMode(KEY2,INPUT_PULLUP);
     pinMode(KEY3,INPUT_PULLUP);
@@ -271,6 +268,56 @@ void setup()
     pinMode(KEY6,INPUT_PULLUP);
 
     heap_caps_print_heap_info(MALLOC_CAP_8BIT);
+
+#ifdef ESP32
+    Serial.printf("ESP.getFreeHeap() %d\n", ESP.getFreeHeap());
+    Serial.printf("ESP.getMinFreeHeap() %d\n", ESP.getMinFreeHeap());
+    Serial.printf("ESP.getHeapSize() %d\n", ESP.getHeapSize());
+    Serial.printf("ESP.getMaxAllocHeap() %d\n", ESP.getMaxAllocHeap());
+
+    Serial.printf("Total heap: %d\n", ESP.getHeapSize());
+    Serial.printf("Free heap: %d\n", ESP.getFreeHeap());
+
+    /* PSRAM will be fully used by the looper */
+    Serial.printf("Total PSRAM: %d\n", ESP.getPsramSize());
+    Serial.printf("Free PSRAM: %d\n", ESP.getFreePsram());
+#endif
+
+    setupLeds();
+    Core0TaskInit();
+}
+
+void setupLeds()
+{
+    // pin0 doesn't work when chords are playing. wtf?? pin 21 works though.
+    FastLED.addLeds<WS2812B, 21, LED_COLOR_ORDER>(leds, NUM_LEDS); 
+
+    FastLED.setBrightness(50); // 0-255
+    
+    // TODO: ideally comment this out to enable dithering... But seeing flicker when running dithering in conjunction 
+    // with audio. Maybe I need to replace delay(...) w/ FastLED.delay(...) throughout the codebase??
+    FastLED.setDither( 0 ); 
+    FastLED.clear();  // clear all pixel data
+    FastLED.show();
+
+    led_train_length = divRoundClosest(NUM_LEDS, LED_TRAIN_LENGTH_FRACTION);
+
+    timerLeds.every(100, doLedTimer);
+}
+
+void loopLeds()
+{
+    timerLeds.tick();
+    
+    // https://github.com/FastLED/FastLED/wiki/FastLED-Temporal-Dithering
+    // > The more often your code calls FastLED.show(), or FastLED.delay(), the higher-quality the dithering will be
+    // FastLED.show();
+}
+
+void setupAudio()
+{
+    timer1sec.every(1000, loop_1Hz);
+    timer8sec.every(8000, loop_8sec);
 
     Serial.printf("Loading data\n");
     click_supp_gain = 0.0f;
@@ -316,20 +363,6 @@ void setup()
 
     FmSynth_Init();
 
-#ifdef ESP32
-    Serial.printf("ESP.getFreeHeap() %d\n", ESP.getFreeHeap());
-    Serial.printf("ESP.getMinFreeHeap() %d\n", ESP.getMinFreeHeap());
-    Serial.printf("ESP.getHeapSize() %d\n", ESP.getHeapSize());
-    Serial.printf("ESP.getMaxAllocHeap() %d\n", ESP.getMaxAllocHeap());
-
-    Serial.printf("Total heap: %d\n", ESP.getHeapSize());
-    Serial.printf("Free heap: %d\n", ESP.getFreeHeap());
-
-    /* PSRAM will be fully used by the looper */
-    Serial.printf("Total PSRAM: %d\n", ESP.getPsramSize());
-    Serial.printf("Free PSRAM: %d\n", ESP.getFreePsram());
-#endif
-
     Serial.printf("Firmware started successfully\n");
 
 #ifdef NOTE_ON_STARTUP /* activate this line to get a tone on startup to test the DAC */
@@ -342,8 +375,6 @@ void setup()
     char midiFile[] = "/fm_demo2_fm0.mid";
     MidiStreamPlayer_PlayMidiFile_fromLittleFS(midiFile, 3);
 #endif
-
-    Core0TaskInit();
 
     FmSynth_NoteOn(curChannel, 1, 0.0f);
     FmSynth_NoteOff(curChannel, 1);
@@ -365,23 +396,6 @@ void setup()
     bleepSequenceTimer.in(random(maxBleepWaitMs), doBleepSequence);
 }
 
-void setupLeds()
-{
-    FastLED.addLeds<WS2812B, 0, LED_COLOR_ORDER>(leds, NUM_LEDS);
-
-    FastLED.setBrightness(50); // 0-255
-    
-    // TODO: ideally comment this out to enable dithering... But seeing flicker when running dithering in conjunction 
-    // with audio. Maybe I need to replace delay(...) w/ FastLED.delay(...) throughout the codebase??
-    FastLED.setDither( 0 ); 
-    FastLED.clear();  // clear all pixel data
-    FastLED.show();
-
-    led_train_length = divRoundClosest(NUM_LEDS, LED_TRAIN_LENGTH_FRACTION);
-
-    timerLeds.every(100, loopLeds);
-}
-
 #ifdef ESP32
 /*
  * Core 0
@@ -395,58 +409,12 @@ void Core0TaskInit()
     xTaskCreatePinnedToCore(Core0Task, "Core0Task", 8192, NULL, 999, &Core0TaskHnd, 0);
 }
 
-inline
-void Core0TaskSetup()
-{
-    Serial.printf("Setting up Core0\n");
-    setupLeds();
-    Serial.printf("Done setting up Core0\n");
-
-// #ifdef OLED_OSC_DISP_ENABLED
-//     ScopeOled_Setup();
-// #endif
-
-//     Status_Setup();
-
-// #ifdef MIDI_VIA_USB_ENABLED
-//     usb_setup();
-//     MIDI_setShortMsgHandler(HandleShortMsg);
-// #endif
-
-// #ifdef PRESSURE_SENSOR_ENABLED
-//     PressureSetup();
-// #endif
-}
-
-void Core0TaskLoop()
-{
-    timerLeds.tick();
-    
-    // https://github.com/FastLED/FastLED/wiki/FastLED-Temporal-Dithering
-    // > The more often your code calls FastLED.show(), or FastLED.delay(), the higher-quality the dithering will be
-    FastLED.show();
-
-//     Status_Process();
-// #ifdef MIDI_VIA_USB_ENABLED
-//     usb_loop();
-// #endif
-
-// #ifdef OLED_OSC_DISP_ENABLED
-//     ScopeOled_Process();
-// #endif
-
-// #ifdef PRESSURE_SENSOR_ENABLED
-//     PressureLoop();
-// #endif
-}
-
 void Core0Task(void *parameter)
 {
-    Core0TaskSetup();
-
+    setupAudio();
     while (true)
     {
-        Core0TaskLoop();
+        loopAudio();
 
         /* this seems necessary to trigger the watchdog */
         delay(1);
@@ -821,7 +789,7 @@ bool doBleep(void *) {
     return true;
 }
 
-bool loopLeds(void *)
+bool doLedTimer(void *)
 {
     int led_train_tail = led_train_head - led_train_length + 1;
     int train_mid_pt;
@@ -895,16 +863,42 @@ int divRoundClosest(const int n, const int d)
   return ((n < 0) == (d < 0)) ? ((n + d/2)/d) : ((n - d/2)/d);
 }
 
-/*
- * this is the main loop
- */
-void loop()
+void loopAudio()
 {
     timer1sec.tick();
     timer8sec.tick();
     timerRestartChord.tick();
     bleepSequenceTimer.tick();
-    bleepTimer.tick();
+    bleepTimer.tick();  
+
+    Midi_Process();
+
+#ifdef MIDI_STREAM_PLAYER_ENABLED
+    MidiStreamPlayer_Tick(SAMPLE_BUFFER_SIZE);
+#endif
+
+#ifdef MIDI_VIA_USB_ENABLED
+    UsbMidi_ProcessSync();
+#endif
+
+#ifdef MIDI_SYNC_MASTER
+    MidiSyncMasterLoop();
+#endif
+
+#ifdef ARP_MODULE_ENABLED
+    Arp_Process(midiSyncCount);
+    midiSyncCount = 0;
+#endif
+
+    audio_task();  
+}
+
+/*
+ * this is the main loop
+ */
+void loop()
+{
+    loopLeds();
 
     static int key1val = 1;
     static int key2val = 1;
@@ -927,27 +921,8 @@ void loop()
     } else if (newVal == 1) {
       key2val = newVal;
     }
- 
-    Midi_Process();
-
-#ifdef MIDI_STREAM_PLAYER_ENABLED
-    MidiStreamPlayer_Tick(SAMPLE_BUFFER_SIZE);
-#endif
-
-#ifdef MIDI_VIA_USB_ENABLED
-    UsbMidi_ProcessSync();
-#endif
-
-#ifdef MIDI_SYNC_MASTER
-    MidiSyncMasterLoop();
-#endif
-
-#ifdef ARP_MODULE_ENABLED
-    Arp_Process(midiSyncCount);
-    midiSyncCount = 0;
-#endif
-
-    audio_task();
+    delay(1);
+    yield();
 }
 
 /*
