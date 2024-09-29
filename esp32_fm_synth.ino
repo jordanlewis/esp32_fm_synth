@@ -283,8 +283,9 @@ void setup()
     Serial.printf("Free PSRAM: %d\n", ESP.getFreePsram());
 #endif
 
-    setupLeds();
-    Core0TaskInit();
+  setupLeds();
+  Core0TaskInit();
+  Core1TaskInit();
 }
 
 void setupLeds()
@@ -316,9 +317,6 @@ void loopLeds()
 
 void setupAudio()
 {
-    timer1sec.every(1000, loop_1Hz);
-    timer8sec.every(8000, loop_8sec);
-
     Serial.printf("Loading data\n");
     click_supp_gain = 0.0f;
 
@@ -405,6 +403,7 @@ void setupAudio()
  */
 /* this is used to add a task to core 0 */
 TaskHandle_t Core0TaskHnd;
+TaskHandle_t Core1TaskHnd;
 inline
 void Core0TaskInit()
 {
@@ -423,6 +422,20 @@ void Core0Task(void *parameter)
         delay(1);
         yield();
     }
+
+}
+inline
+void Core1TaskInit()
+{
+  /* we need a second task for the terminal output */
+  xTaskCreatePinnedToCore(Core1Task, "Core1Task", 8192, NULL, 999, &Core1TaskHnd, 1);
+}
+
+void Core1Task(void *parameter)
+{
+  while (true) {
+      loopLeds();
+  }
 }
 #endif /* ESP32 */
 
