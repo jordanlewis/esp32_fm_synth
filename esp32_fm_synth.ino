@@ -225,9 +225,6 @@ void setup()
     // put your setup code here, to run once:
     delay(250);
 
-    timer1sec.every(1000, loop_1Hz);
-    timer8sec.every(8000, loop_8sec);
-
     pinMode(KEY1,INPUT_PULLUP);
     pinMode(KEY2,INPUT_PULLUP);
     pinMode(KEY3,INPUT_PULLUP);
@@ -326,7 +323,7 @@ void setup()
 
     FmSynth_ModulationWheel(1, .039);
     FmSynth_ModulationSpeed(1, .196);
-    Reverb_SetLevel(1, .8);
+    Reverb_SetLevel(1, .5);
     Delay_SetInputLevel(1, 0.74f);
     Delay_SetLength(1, 0.717f);
     Delay_SetOutputLevel(1, 0.5f);
@@ -335,6 +332,9 @@ void setup()
     FmSynth_TremoloSpeed(1, .157);
 
     delay(125);
+    
+    timer1sec.every(1000, loop_1Hz);
+    timer8sec.every(8000, loop_8sec);
     
     loop_8sec(NULL);
     bleepSequenceTimer.in(random(maxBleepWaitMs), doBleepSequence);
@@ -548,7 +548,7 @@ inline void audio_task()
     memset(fr_sample, 0, sizeof(fr_sample));
     memset(m1_sample, 0, sizeof(m1_sample));
 #ifdef ESP32_AUDIO_KIT
-    Audio_Input(fl_sample, fr_sample);
+    //Audio_Input(fl_sample, fr_sample);
 #endif
 #else
     memset(fl_sample, 0, sizeof(fl_sample));
@@ -556,36 +556,36 @@ inline void audio_task()
     memset(m1_sample, 0, sizeof(m1_sample));
 #endif
 
-    for (int n = 0; n < SAMPLE_BUFFER_SIZE; n++)
-    {
-        /*
-         * this avoids the high peak coming over the mic input when switching to it
-         */
-        fl_sample[n] *= click_supp_gain;
-        fr_sample[n] *= click_supp_gain;
-
-        if (click_supp_gain < 1.0f)
-        {
-            click_supp_gain += 0.00001f;
-        }
-        else
-        {
-            click_supp_gain = 1.0f;
-        }
-
-        /* make it a bit quieter */
-        fl_sample[n] *= 0.5f;
-        fr_sample[n] *= 0.5f;
-
-        /*
-         * this removes dc from signal
-         */
-        fl_offset = fl_offset * 0.99 + fl_sample[n] * 0.01;
-        fr_offset = fr_offset * 0.99 + fr_sample[n] * 0.01;
-
-        fl_sample[n] -= fl_offset;
-        fr_sample[n] -= fr_offset;
-    }
+//    for (int n = 0; n < SAMPLE_BUFFER_SIZE; n++)
+//    {
+//        /*
+//         * this avoids the high peak coming over the mic input when switching to it
+//         */
+//        fl_sample[n] *= click_supp_gain;
+//        fr_sample[n] *= click_supp_gain;
+//
+//        if (click_supp_gain < 1.0f)
+//        {
+//            click_supp_gain += 0.00001f;
+//        }
+//        else
+//        {
+//            click_supp_gain = 1.0f;
+//        }
+//
+//        /* make it a bit quieter */
+//        fl_sample[n] *= 0.5f;
+//        fr_sample[n] *= 0.5f;
+//
+//        /*
+//         * this removes dc from signal
+//         */
+//        fl_offset = fl_offset * 0.99 + fl_sample[n] * 0.01;
+//        fr_offset = fr_offset * 0.99 + fr_sample[n] * 0.01;
+//
+//        fl_sample[n] -= fl_offset;
+//        fr_sample[n] -= fr_offset;
+//    }
 
     /*
      * main loop core
@@ -617,11 +617,11 @@ inline void audio_task()
     for (int n = 0; n < SAMPLE_BUFFER_SIZE; n++)
     {
         m1_sample[n] *= 2.125f;
-        fl_sample[n] += m1_sample[n];
-        fr_sample[n] += m1_sample[n];
+        //fl_sample[n] += m1_sample[n];
+        //fr_sample[n] += m1_sample[n];
     }
 
-    Audio_Output(fl_sample, fr_sample);
+    Audio_Output(m1_sample, m1_sample);
 
 #ifdef OLED_OSC_DISP_ENABLED
     ScopeOled_AddSamples(fl_sample, fr_sample, SAMPLE_BUFFER_SIZE);
