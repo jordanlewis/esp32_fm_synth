@@ -309,7 +309,19 @@ void setupLeds()
 
   led_train_length = divRoundClosest(NUM_LEDS, LED_TRAIN_LENGTH_FRACTION);
 
-  timerLeds.every(100, doLedTimer);
+  // TODO: this timer interval isn't 100% accurate. I'm currently seeing log lines like this:
+  // https://gist.github.com/dasl-/c8967188b8ee15a4b60d195d8c776e98
+  //
+  // It means the timer is executing every 44-45 ms, whereas I want it to execute every 41 ms
+  // Maybe this is because `FastLED.show()` takes ~4 ms, so it gets that much delayed? Then we keep
+  // getting more and more off track. It means the LED train doesn't make it to the end of the strip
+  // by the time the chord changes.
+  //
+  // Maybe we need to implement a custom timer using the millis() function that will correct itself if
+  // things get off??
+  int led_timer_ms = 8000 / (NUM_LEDS + led_train_length);
+  Serial.printf("Led Timer MS target: %d\n", led_timer_ms);
+  timerLeds.every(led_timer_ms, doLedTimer);
 }
 
 void loopLeds()
@@ -682,8 +694,17 @@ bool loop_1Hz(void *)
 static bool enableChords = true;
 
 
+int lastStartChordTime = 0;
 bool startChord(void *)
 {
+  if (lastStartChordTime != 0) {
+    int now = millis();
+    Serial.printf("Time since last startChord: %d \n", now - lastStartChordTime);
+    lastStartChordTime = now;
+  } else {
+    lastStartChordTime = millis();
+  }
+
   Serial.printf("Playing chord on channel %d\n", curChannel);
   if (xSemaphoreTake(lastChordMutex, 0xFFFFFFFF) != pdTRUE) {
     return false;
@@ -834,10 +855,27 @@ const CRGB colors[] = {
 // 0 - 255, higher values are fainter.
 // Ex: 192 means 75% faded
 #define BACKGROUND_FADE_AMOUNT 200
+static int *lastLastChord = NULL;
+int lastDoLedTimer = 0;
 bool doLedTimer(void *)
 {
+  if (lastDoLedTimer != 0) {
+    int now = millis();
+    Serial.printf("Time since last doLedTimer: %d \n", now - lastDoLedTimer);
+    lastDoLedTimer = now;
+  } else {
+    lastDoLedTimer = millis();
+  }
+
   if (xSemaphoreTake(lastChordMutex, 0xFFFFFF) != pdTRUE) {
+    Serial.printf("failed to acquire lastChordMutex in doLedTimer\n");
     return false;
+  }
+  if (lastLastChord != lastChord) {
+    // The chord just changed, i.e. it's been 8 seconds
+    lastLastChord = lastChord;
+    led_train_head = 0;
+    // Serial.printf("chord changed\n");
   }
 
   // We acquired the last chord mutex
@@ -857,7 +895,7 @@ bool doLedTimer(void *)
   // https://github.com/FastLED/FastLED/wiki/Pixel-reference#dimming-and-brightening-colors
   CRGB led_background_color = led_color;
   led_background_color.fadeLightBy(BACKGROUND_FADE_AMOUNT);
-  Serial.printf("Using LED Background Color pre-gamma red: %d\n", led_background_color.r);
+  // Serial.printf("Using LED Background Color pre-gamma red: %d\n", led_background_color.r);
   led_background_color = scaleGamma(led_background_color);
 
   for (int i = 0; i < NUM_LEDS; i++)
@@ -888,7 +926,6 @@ bool doLedTimer(void *)
     }
   }
 
-  FastLED.show();
   led_train_head += 1;
   return true;
 }
