@@ -251,7 +251,8 @@ static int lastChannel = 0;
 
 static int maxBleepWaitMs = 12000;
 
-SemaphoreHandle_t chordMutex = NULL;
+// Mutex for reading/writing the lastChord variable
+SemaphoreHandle_t lastChordMutex = NULL;
 static int *lastChord = NULL;
 
 /* this application starts here */
@@ -288,9 +289,9 @@ void setup()
   int chordIdx = random(N_CHORDS);
   lastChord = chords[chordIdx];
   setupLeds();
-  chordMutex = xSemaphoreCreateMutex();
-  Core0TaskInit();
-  Core1TaskInit();
+  lastChordMutex = xSemaphoreCreateMutex();
+  Core0TaskInit(); // audio
+  Core1TaskInit(); // LEDs
 }
 
 void setupLeds()
@@ -302,7 +303,7 @@ void setupLeds()
 
   // TODO: ideally comment this out to enable dithering... But seeing flicker when running dithering in conjunction
   // with audio. Maybe I need to replace delay(...) w/ FastLED.delay(...) throughout the codebase??
-  FastLED.setDither( 0 );
+  FastLED.setDither(1);
   FastLED.clear();  // clear all pixel data
   FastLED.show();
 
@@ -317,7 +318,7 @@ void loopLeds()
 
   // https://github.com/FastLED/FastLED/wiki/FastLED-Temporal-Dithering
   // > The more often your code calls FastLED.show(), or FastLED.delay(), the higher-quality the dithering will be
-  // FastLED.show();
+  FastLED.show();
 }
 
 void setupAudio()
@@ -684,63 +685,65 @@ static bool enableChords = true;
 bool startChord(void *)
 {
   Serial.printf("Playing chord on channel %d\n", curChannel);
-  int *chord = NULL;
-  if (xSemaphoreTake(chordMutex, 0xFFFFFFFF) == pdTRUE) {
-    int *chord = lastChord;
-    if (lastChord == NULL) {
-      int chordIdx = random(N_CHORDS);
-      chord = chords[chordIdx];
-      lastChord = chord;
-    } else {
-      // Find all chords that have all but one note in common with the previous chord.
-      int chordArray[N_CHORDS];
-      int nChords = 0;
-      for (int i = 0; i < N_CHORDS; i++) {   // For each of the top level chords
-        int nMatches = 0;
-        for (int oldIdx = 0; oldIdx < 4; oldIdx++) { // For each of the notes in the last chord
-          for (int newIdx = 0; newIdx < 4; newIdx++) {  // For each of the notes in the new chord
-            if (lastChord[oldIdx] == chords[i][newIdx]) {
-              // Found a match!
-              //Serial.printf("Match: %d %d\n", lastChord[oldIdx], chords[i][newIdx]);
-              nMatches += 1;
-              break;
-            }
-          }
-        }
-        if (nMatches == 3) {
-          Serial.printf("Found match:");
-          for (int j = 0; j < 4; j++) {
-            Serial.printf(" %d", chords[i][j]);
-          }
-          Serial.println("");
-          chordArray[nChords] = i;
-          nChords += 1;
-        }
-      }
+  if (xSemaphoreTake(lastChordMutex, 0xFFFFFFFF) != pdTRUE) {
+    return false;
+  }
 
-      int chordIdx = random(nChords);
-      chord = chords[chordArray[chordIdx]];
-      lastChord = chord;
-      Serial.printf("Decided on:");
-      for (int i = 0; i < 4; i++) {
-        Serial.printf(" %d", lastChord[i]);
+  // We acquired the last chord mutex
+  int *chord = lastChord;
+  if (lastChord == NULL) {
+    int chordIdx = random(N_CHORDS);
+    chord = chords[chordIdx];
+    lastChord = chord;
+  } else {
+    // Find all chords that have all but one note in common with the previous chord.
+    int chordArray[N_CHORDS];
+    int nChords = 0;
+    for (int i = 0; i < N_CHORDS; i++) {   // For each of the top level chords
+      int nMatches = 0;
+      for (int oldIdx = 0; oldIdx < 4; oldIdx++) { // For each of the notes in the last chord
+        for (int newIdx = 0; newIdx < 4; newIdx++) {  // For each of the notes in the new chord
+          if (lastChord[oldIdx] == chords[i][newIdx]) {
+            // Found a match!
+            //Serial.printf("Match: %d %d\n", lastChord[oldIdx], chords[i][newIdx]);
+            nMatches += 1;
+            break;
+          }
+        }
       }
-      Serial.println("");
+      if (nMatches == 3) {
+        Serial.printf("Found match:");
+        for (int j = 0; j < 4; j++) {
+          Serial.printf(" %d", chords[i][j]);
+        }
+        Serial.println("");
+        chordArray[nChords] = i;
+        nChords += 1;
+      }
     }
 
-
-    Serial.printf("Playing chord");
+    int chordIdx = random(nChords);
+    chord = chords[chordArray[chordIdx]];
+    lastChord = chord;
+    Serial.printf("Decided on:");
     for (int i = 0; i < 4; i++) {
       Serial.printf(" %d", lastChord[i]);
-      if (chord[i] != 0) {
-        FmSynth_NoteOn(curChannel, lastChord[i], 1.0f);
-      }
     }
-    FmSynth_NoteOn(lastChannel, lastChord[0] % 12 + 48, 1.0f);
-
-    Serial.println();
-    xSemaphoreGive(chordMutex);
+    Serial.println("");
   }
+
+
+  Serial.printf("Playing chord");
+  for (int i = 0; i < 4; i++) {
+    Serial.printf(" %d", lastChord[i]);
+    if (chord[i] != 0) {
+      FmSynth_NoteOn(curChannel, lastChord[i], 1.0f);
+    }
+  }
+  FmSynth_NoteOn(lastChannel, lastChord[0] % 12 + 48, 1.0f);
+
+  Serial.println();
+  xSemaphoreGive(lastChordMutex);
 
   return true;
 }
@@ -828,52 +831,61 @@ const CRGB colors[] = {
   CRGB::Violet
 };
 
+// 0 - 255, higher values are fainter.
+// Ex: 192 means 75% faded
+#define BACKGROUND_FADE_AMOUNT 200
 bool doLedTimer(void *)
 {
+  if (xSemaphoreTake(lastChordMutex, 0xFFFFFF) != pdTRUE) {
+    return false;
+  }
+
+  // We acquired the last chord mutex
+  CRGB led_color = colors[lastChord[0] % 7];
+  xSemaphoreGive(lastChordMutex);
+
   int led_train_tail = led_train_head - led_train_length + 1;
   int train_mid_pt;
   int distance_to_mid_pt;
 
   // This formula works regardless of whether the train length is even or odd. In the odd case,
   // we take advantage of integer truncation.
-  // TODO: we have an off by one error somewhere
-  // https://gist.github.com/dasl-/d2e0897c8b5e5ce9d2c33ca4a71d398e
   int steps_to_fade_train = (led_train_length + 1) / 2; // TODO odd case = 3
-  int fade_amount_per_step = divRoundClosest(255, steps_to_fade_train);
+  int fade_amount_per_step = divRoundClosest(BACKGROUND_FADE_AMOUNT, steps_to_fade_train);
   bool is_odd = led_train_length % 2 == 1;
-  // Acquire the chord mutex
-  if (xSemaphoreTake(chordMutex, 0xFFFFFF) == pdTRUE) {
-    CRGB led_color = colors[lastChord[0] % 7];
-    CRGB led_background_color = led_color.fadeLightBy(240);
-    for (int i = 0; i < NUM_LEDS; i++)
-    {
-      if (led_train_tail <= i && i <= led_train_head) {
-        // Hop aboard the train
-        train_mid_pt = is_odd ? led_train_tail + steps_to_fade_train - 1 : led_train_tail + steps_to_fade_train;
-        if (is_odd) {
-          // train has single mid-point
-          distance_to_mid_pt = abs(train_mid_pt - i);
-        } else {
-          // train has two mid-points
-          if (i == train_mid_pt || i == (train_mid_pt - 1)) {
-            distance_to_mid_pt = 0;
-          } else if (i < train_mid_pt) {
-            distance_to_mid_pt = (train_mid_pt - 1) - i;
-          } else {
-            distance_to_mid_pt = i - train_mid_pt;
-          }
-        }
 
-        CRGB this_pixel_color = led_color;
-        this_pixel_color.fadeLightBy(fade_amount_per_step * distance_to_mid_pt);
-        // https://github.com/FastLED/FastLED/wiki/Pixel-reference#dimming-and-brightening-colors
-        leds[i] = scaleGamma(this_pixel_color);
-        // Serial.printf("Set led %d to red: %d\n", i, leds[i].r);
+  // https://github.com/FastLED/FastLED/wiki/Pixel-reference#dimming-and-brightening-colors
+  CRGB led_background_color = led_color;
+  led_background_color.fadeLightBy(BACKGROUND_FADE_AMOUNT);
+  Serial.printf("Using LED Background Color pre-gamma red: %d\n", led_background_color.r);
+  led_background_color = scaleGamma(led_background_color);
+
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
+    if (led_train_tail <= i && i <= led_train_head) {
+      // Hop aboard the train
+      train_mid_pt = is_odd ? led_train_tail + steps_to_fade_train - 1 : led_train_tail + steps_to_fade_train;
+      if (is_odd) {
+        // train has single mid-point
+        distance_to_mid_pt = abs(train_mid_pt - i);
       } else {
-        leds[i] = led_background_color;
+        // train has two mid-points
+        if (i == train_mid_pt || i == (train_mid_pt - 1)) {
+          distance_to_mid_pt = 0;
+        } else if (i < train_mid_pt) {
+          distance_to_mid_pt = (train_mid_pt - 1) - i;
+        } else {
+          distance_to_mid_pt = i - train_mid_pt;
+        }
       }
+
+      CRGB this_pixel_color = led_color;
+      this_pixel_color.fadeLightBy(fade_amount_per_step * distance_to_mid_pt);
+      // Serial.printf("Set led %d to pre-gamma red: %d\n", i, this_pixel_color.r);
+      leds[i] = scaleGamma(this_pixel_color);
+    } else {
+      leds[i] = led_background_color;
     }
-    xSemaphoreGive(chordMutex);
   }
 
   FastLED.show();
