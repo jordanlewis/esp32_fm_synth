@@ -218,8 +218,6 @@ unsigned int chord_counter = 0;
 
 int led_train_length;
 int led_train_head = 0;
-CRGB led_train_color = CRGB::Red;
-CRGB led_background_color = CRGB::Blue;
 
 void button1() {
   Serial.println("one");
@@ -253,6 +251,9 @@ static int lastChannel = 0;
 
 static int maxBleepWaitMs = 12000;
 
+SemaphoreHandle_t chordMutex = NULL;
+static int *lastChord = NULL;
+
 /* this application starts here */
 void setup()
 {
@@ -284,7 +285,10 @@ void setup()
   Serial.printf("Free PSRAM: %d\n", ESP.getFreePsram());
 #endif
 
+  int chordIdx = random(N_CHORDS);
+  lastChord = chords[chordIdx];
   setupLeds();
+  chordMutex = xSemaphoreCreateMutex();
   Core0TaskInit();
   Core1TaskInit();
 }
@@ -434,7 +438,7 @@ void Core1TaskInit()
 void Core1Task(void *parameter)
 {
   while (true) {
-      loopLeds();
+    loopLeds();
   }
 }
 #endif /* ESP32 */
@@ -674,61 +678,69 @@ bool loop_1Hz(void *)
   return true;
 }
 
-SemaphoreHandle_t shared_var_mutex = NULL;
-static int *lastChord = NULL;
 static bool enableChords = true;
 
 
 bool startChord(void *)
 {
   Serial.printf("Playing chord on channel %d\n", curChannel);
-  int *chord = lastChord;
-  if (lastChord == NULL) {
-    int chordIdx = random(N_CHORDS);
-    chord = chords[chordIdx];
-    lastChord = chord;
-  } else {
-    // Find all chords that have all but one note in common with the previous chord.
-    int chordArray[N_CHORDS];
-    int nChords = 0;
-    for (int i = 0; i < N_CHORDS; i++) {   // For each of the top level chords
-      int nMatches = 0;
-      for (int oldIdx = 0; oldIdx < 4; oldIdx++) { // For each of the notes in the last chord
-        for (int newIdx = 0; newIdx < 4; newIdx++) {  // For each of the notes in the new chord
-          if (lastChord[oldIdx] == chords[i][newIdx]) {
-            // Found a match!
-            //Serial.printf("Match: %d %d\n", lastChord[oldIdx], chords[i][newIdx]);
-            nMatches += 1;
-            break;
+  int *chord = NULL;
+  if (xSemaphoreTake(chordMutex, 0xFFFFFFFF) == pdTRUE) {
+    int *chord = lastChord;
+    if (lastChord == NULL) {
+      int chordIdx = random(N_CHORDS);
+      chord = chords[chordIdx];
+      lastChord = chord;
+    } else {
+      // Find all chords that have all but one note in common with the previous chord.
+      int chordArray[N_CHORDS];
+      int nChords = 0;
+      for (int i = 0; i < N_CHORDS; i++) {   // For each of the top level chords
+        int nMatches = 0;
+        for (int oldIdx = 0; oldIdx < 4; oldIdx++) { // For each of the notes in the last chord
+          for (int newIdx = 0; newIdx < 4; newIdx++) {  // For each of the notes in the new chord
+            if (lastChord[oldIdx] == chords[i][newIdx]) {
+              // Found a match!
+              //Serial.printf("Match: %d %d\n", lastChord[oldIdx], chords[i][newIdx]);
+              nMatches += 1;
+              break;
+            }
           }
         }
-      }
-      if (nMatches == 3) {
-        Serial.printf("Found match:");
-        for (int j = 0; j < 4; j++) {
-          Serial.printf(" %d", chords[i][j]);
+        if (nMatches == 3) {
+          Serial.printf("Found match:");
+          for (int j = 0; j < 4; j++) {
+            Serial.printf(" %d", chords[i][j]);
+          }
+          Serial.println("");
+          chordArray[nChords] = i;
+          nChords += 1;
         }
-        Serial.println("");
-        chordArray[nChords] = i;
-        nChords += 1;
+      }
+
+      int chordIdx = random(nChords);
+      chord = chords[chordArray[chordIdx]];
+      lastChord = chord;
+      Serial.printf("Decided on:");
+      for (int i = 0; i < 4; i++) {
+        Serial.printf(" %d", lastChord[i]);
+      }
+      Serial.println("");
+    }
+
+
+    Serial.printf("Playing chord");
+    for (int i = 0; i < 4; i++) {
+      Serial.printf(" %d", lastChord[i]);
+      if (chord[i] != 0) {
+        FmSynth_NoteOn(curChannel, lastChord[i], 1.0f);
       }
     }
+    FmSynth_NoteOn(lastChannel, lastChord[0] % 12 + 48, 1.0f);
 
-    int chordIdx = random(nChords);
-    chord = chords[chordArray[chordIdx]];
-    lastChord = chord;
+    Serial.println();
+    xSemaphoreGive(chordMutex);
   }
-
-  Serial.printf("Playing chord");
-  for (int i = 0; i < 4; i++) {
-    Serial.printf(" %d", chord[i]);
-    if (chord[i] != 0) {
-      FmSynth_NoteOn(curChannel, chord[i], 1.0f);
-    }
-  }
-  FmSynth_NoteOn(lastChannel, chord[0] % 12 + 48, 1.0f);
-
-  Serial.println();
 
   return true;
 }
@@ -806,6 +818,16 @@ bool doBleep(void *) {
   return true;
 }
 
+const CRGB colors[] = {
+  CRGB::Blue,
+  CRGB::Red,
+  CRGB::Yellow,
+  CRGB::Magenta,
+  CRGB::Purple,
+  CRGB::Cyan,
+  CRGB::Violet
+};
+
 bool doLedTimer(void *)
 {
   int led_train_tail = led_train_head - led_train_length + 1;
@@ -819,36 +841,39 @@ bool doLedTimer(void *)
   int steps_to_fade_train = (led_train_length + 1) / 2; // TODO odd case = 3
   int fade_amount_per_step = divRoundClosest(255, steps_to_fade_train);
   bool is_odd = led_train_length % 2 == 1;
-  led_background_color = CRGB::Blue;
-  led_background_color = led_background_color.fadeLightBy(240);
-  for (int i = 0; i < NUM_LEDS; i++)
-  {
-    if (led_train_tail <= i && i <= led_train_head) {
-
-      // Hop aboard the train
-      train_mid_pt = is_odd ? led_train_tail + steps_to_fade_train - 1 : led_train_tail + steps_to_fade_train;
-      if (is_odd) {
-        // train has single mid-point
-        distance_to_mid_pt = abs(train_mid_pt - i);
-      } else {
-        // train has two mid-points
-        if (i == train_mid_pt || i == (train_mid_pt - 1)) {
-          distance_to_mid_pt = 0;
-        } else if (i < train_mid_pt) {
-          distance_to_mid_pt = (train_mid_pt - 1) - i;
+  // Acquire the chord mutex
+  if (xSemaphoreTake(chordMutex, 0xFFFFFF) == pdTRUE) {
+    CRGB led_color = colors[lastChord[0] % 7];
+    CRGB led_background_color = led_color.fadeLightBy(240);
+    for (int i = 0; i < NUM_LEDS; i++)
+    {
+      if (led_train_tail <= i && i <= led_train_head) {
+        // Hop aboard the train
+        train_mid_pt = is_odd ? led_train_tail + steps_to_fade_train - 1 : led_train_tail + steps_to_fade_train;
+        if (is_odd) {
+          // train has single mid-point
+          distance_to_mid_pt = abs(train_mid_pt - i);
         } else {
-          distance_to_mid_pt = i - train_mid_pt;
+          // train has two mid-points
+          if (i == train_mid_pt || i == (train_mid_pt - 1)) {
+            distance_to_mid_pt = 0;
+          } else if (i < train_mid_pt) {
+            distance_to_mid_pt = (train_mid_pt - 1) - i;
+          } else {
+            distance_to_mid_pt = i - train_mid_pt;
+          }
         }
-      }
 
-      CRGB this_pixel_color = led_train_color;
-      this_pixel_color.fadeLightBy(fade_amount_per_step * distance_to_mid_pt);
-      // https://github.com/FastLED/FastLED/wiki/Pixel-reference#dimming-and-brightening-colors
-      leds[i] = scaleGamma(this_pixel_color);
-      // Serial.printf("Set led %d to red: %d\n", i, leds[i].r);
-    } else {
-      leds[i] = led_background_color;
+        CRGB this_pixel_color = led_color;
+        this_pixel_color.fadeLightBy(fade_amount_per_step * distance_to_mid_pt);
+        // https://github.com/FastLED/FastLED/wiki/Pixel-reference#dimming-and-brightening-colors
+        leds[i] = scaleGamma(this_pixel_color);
+        // Serial.printf("Set led %d to red: %d\n", i, leds[i].r);
+      } else {
+        leds[i] = led_background_color;
+      }
     }
+    xSemaphoreGive(chordMutex);
   }
 
   FastLED.show();
