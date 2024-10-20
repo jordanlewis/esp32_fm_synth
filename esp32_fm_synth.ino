@@ -54,6 +54,7 @@
 #include <FS.h>
 #include <SD_MMC.h>
 #include <WiFi.h>
+
 #include <FastLED.h>
 
 extern void Status_ValueChangedFloat(const char *descr, float value);
@@ -207,9 +208,13 @@ const uint8_t gamma8[] = {
 };
 
 // The LED strips have 160 LEDs per meter.
-#define NUM_LEDS 160 // 1 meter long
-CRGB leds[NUM_LEDS];
-// #define NUM_LEDS5 800 // 5 meters long
+#define NUM_L1 242
+#define NUM_L2 234
+#define NUM_L3 46
+#define MAX_NUM_LEDS NUM_L1 
+CRGB leds1[NUM_L1];
+CRGB leds2[NUM_L2];
+CRGB leds3[NUM_L3];
 unsigned int chord_counter = 0;
 #define LED_COLOR_ORDER GRB
 
@@ -296,18 +301,19 @@ void setup()
 
 void setupLeds()
 {
-  // pin0 doesn't work when chords are playing. wtf?? pin 21 works though.
-  FastLED.addLeds<WS2812B, 21, LED_COLOR_ORDER>(leds, NUM_LEDS);
+  FastLED.addLeds<WS2812B, 5, LED_COLOR_ORDER>(leds1, NUM_L1);
+  FastLED.addLeds<WS2812B, 18, LED_COLOR_ORDER>(leds2, NUM_L2);
+  FastLED.addLeds<WS2812B, 23, LED_COLOR_ORDER>(leds3, NUM_L3);
 
-  FastLED.setBrightness(50); // 0-255
+  FastLED.setBrightness(100); // 0-255
+  // FastLED.setMaxRefreshRate(0);
 
-  // TODO: ideally comment this out to enable dithering... But seeing flicker when running dithering in conjunction
-  // with audio. Maybe I need to replace delay(...) w/ FastLED.delay(...) throughout the codebase??
   FastLED.setDither(1);
-  FastLED.clear();  // clear all pixel data
+  FastLED.clear();
   FastLED.show();
+  // lightTest();
 
-  led_train_length = divRoundClosest(NUM_LEDS, LED_TRAIN_LENGTH_FRACTION);
+  led_train_length = 50; //divRoundClosest(MAX_NUM_LEDS, LED_TRAIN_LENGTH_FRACTION);
 
   // TODO: this timer interval isn't 100% accurate. I'm currently seeing log lines like this:
   // https://gist.github.com/dasl-/c8967188b8ee15a4b60d195d8c776e98
@@ -319,18 +325,25 @@ void setupLeds()
   //
   // Maybe we need to implement a custom timer using the millis() function that will correct itself if
   // things get off??
-  int led_timer_ms = 8000 / (NUM_LEDS + led_train_length);
+  int led_timer_ms = 8000 / (MAX_NUM_LEDS + led_train_length);
   Serial.printf("Led Timer MS target: %d\n", led_timer_ms);
   timerLeds.every(led_timer_ms, doLedTimer);
 }
 
 void loopLeds()
 {
+  int loop_s = millis();
   timerLeds.tick();
 
   // https://github.com/FastLED/FastLED/wiki/FastLED-Temporal-Dithering
   // > The more often your code calls FastLED.show(), or FastLED.delay(), the higher-quality the dithering will be
+  int show_s = millis();
   FastLED.show();
+  int end = millis();
+  int show_elapsed = end - show_s;
+  int loop_elapsed = end - loop_s; 
+  // Serial.printf("Show took: %d ms\n", show_elapsed);
+  // Serial.printf("loop took: %d ms\n", loop_elapsed);
 }
 
 void setupAudio()
@@ -699,7 +712,7 @@ bool startChord(void *)
 {
   if (lastStartChordTime != 0) {
     int now = millis();
-    Serial.printf("Time since last startChord: %d \n", now - lastStartChordTime);
+    // Serial.printf("Time since last startChord: %d \n", now - lastStartChordTime);
     lastStartChordTime = now;
   } else {
     lastStartChordTime = millis();
@@ -842,16 +855,6 @@ bool doBleep(void *) {
   return true;
 }
 
-const CRGB colors[] = {
-  CRGB::Blue,
-  CRGB::Red,
-  CRGB::Yellow,
-  CRGB::Magenta,
-  CRGB::Purple,
-  CRGB::Cyan,
-  CRGB::Violet
-};
-
 // 0 - 255, higher values are fainter.
 // Ex: 192 means 75% faded
 #define BACKGROUND_FADE_AMOUNT 200
@@ -861,7 +864,7 @@ bool doLedTimer(void *)
 {
   if (lastDoLedTimer != 0) {
     int now = millis();
-    Serial.printf("Time since last doLedTimer: %d \n", now - lastDoLedTimer);
+    // Serial.printf("Time since last doLedTimer: %d \n", now - lastDoLedTimer);
     lastDoLedTimer = now;
   } else {
     lastDoLedTimer = millis();
@@ -871,6 +874,8 @@ bool doLedTimer(void *)
     Serial.printf("failed to acquire lastChordMutex in doLedTimer\n");
     return false;
   }
+  // We acquired the last chord mutex
+
   if (lastLastChord != lastChord) {
     // The chord just changed, i.e. it's been 8 seconds
     lastLastChord = lastChord;
@@ -878,8 +883,9 @@ bool doLedTimer(void *)
     // Serial.printf("chord changed\n");
   }
 
-  // We acquired the last chord mutex
-  CRGB led_color = colors[lastChord[0] % 7];
+  CRGB root_color = getColorForNote(lastChord[0]);
+  CRGB third_color = getColorForNote(lastChord[1]);
+  CRGB fifth_color = getColorForNote(lastChord[2]);
   xSemaphoreGive(lastChordMutex);
 
   int led_train_tail = led_train_head - led_train_length + 1;
@@ -892,13 +898,15 @@ bool doLedTimer(void *)
   int fade_amount_per_step = divRoundClosest(BACKGROUND_FADE_AMOUNT, steps_to_fade_train);
   bool is_odd = led_train_length % 2 == 1;
 
-  // https://github.com/FastLED/FastLED/wiki/Pixel-reference#dimming-and-brightening-colors
-  CRGB led_background_color = led_color;
-  led_background_color.fadeLightBy(BACKGROUND_FADE_AMOUNT);
-  // Serial.printf("Using LED Background Color pre-gamma red: %d\n", led_background_color.r);
-  led_background_color = scaleGamma(led_background_color);
+  CRGB root_background_color = getBackgroundColor(root_color);
+  CRGB third_background_color = getBackgroundColor(third_color);
+  CRGB fifth_background_color = getBackgroundColor(fifth_color);
 
-  for (int i = 0; i < NUM_LEDS; i++)
+  
+  // Why do we iterate backwards? When iterating forwards, we had a weird "color bleed" problem. The 1st LED of
+  // the 1st strip would be the color of the last LED in the 2nd strip. Likewise, the 1st LED of the 2nd strip 
+  // would be the color of the last LED in the 3rd strip. I assume this is due to some data line  interference.
+  for (int i = MAX_NUM_LEDS - 1; i >= 0; i--)
   {
     if (led_train_tail <= i && i <= led_train_head) {
       // Hop aboard the train
@@ -917,17 +925,72 @@ bool doLedTimer(void *)
         }
       }
 
-      CRGB this_pixel_color = led_color;
-      this_pixel_color.fadeLightBy(fade_amount_per_step * distance_to_mid_pt);
-      // Serial.printf("Set led %d to pre-gamma red: %d\n", i, this_pixel_color.r);
-      leds[i] = scaleGamma(this_pixel_color);
+      CRGB root_train_color = getColorForTrainPosition(root_color, fade_amount_per_step, distance_to_mid_pt);
+      CRGB third_train_color = getColorForTrainPosition(third_color, fade_amount_per_step, distance_to_mid_pt);
+      CRGB fifth_train_color = getColorForTrainPosition(fifth_color, fade_amount_per_step, distance_to_mid_pt);
+      setLeds1(i, root_train_color);
+      setLeds2(i, fifth_train_color);
+      setLeds3(i, third_train_color);
     } else {
-      leds[i] = led_background_color;
+      setLeds1(i, root_background_color);
+      setLeds2(i, fifth_background_color);
+      setLeds3(i, third_background_color);
     }
   }
 
   led_train_head += 1;
   return true;
+}
+
+void setLeds1(int i, CRGB color) {
+  if (0 <= i && i <= NUM_L1) {
+    leds1[i] = color;
+  }
+}
+
+void setLeds2(int i, CRGB color) {
+  if (0 <= i && i <= NUM_L2) {
+    leds2[i] = color;
+  }
+}
+
+void setLeds3(int i, CRGB color) {
+  if (0 <= i && i <= NUM_L3) {
+    leds3[i] = color;
+  }
+}
+
+const CRGB colors[] = {
+  CRGB::Blue,
+  CRGB::Red,
+  CRGB::Yellow,
+  CRGB::Magenta,
+  CRGB::Purple,
+  CRGB::Cyan,
+  CRGB::Violet
+};
+CRGB getColorForNote(int midi_note)
+{
+  if (midi_note % 12 == 0) return colors[0]; // C
+  if (midi_note % 12 == 2) return colors[1]; // D
+  if (midi_note % 12 == 4) return colors[2]; // E
+  if (midi_note % 12 == 5) return colors[3]; // F
+  if (midi_note % 12 == 7) return colors[4]; // G
+  if (midi_note % 12 == 9) return colors[5]; // A
+  if (midi_note % 12 == 11) return colors[6]; // B
+  else return CRGB::White; // this should never happen
+}
+
+CRGB getBackgroundColor(CRGB color) {
+  // https://github.com/FastLED/FastLED/wiki/Pixel-reference#dimming-and-brightening-colors
+  color.fadeLightBy(BACKGROUND_FADE_AMOUNT);
+  return scaleGamma(color);
+}
+
+CRGB getColorForTrainPosition(CRGB color, int fade_amount_per_step, int distance_to_mid_pt) {
+  CRGB ret_color = color;
+  ret_color.fadeLightBy(fade_amount_per_step * distance_to_mid_pt);
+  return scaleGamma(ret_color);
 }
 
 CRGB scaleGamma(CRGB color)
@@ -936,6 +999,24 @@ CRGB scaleGamma(CRGB color)
   color.g = gamma8[color.g];
   color.b = gamma8[color.b];
   return color;
+}
+
+void lightTest()
+{
+  Serial.printf("Starting light test\n");
+  FastLED.delay(1000);
+  for (int i = 0; i < 7; i++)
+  {
+    CRGB led_background_color = colors[i];
+    led_background_color.fadeLightBy(BACKGROUND_FADE_AMOUNT);
+    led_background_color = scaleGamma(led_background_color);
+    for (int j = 0; j < NUM_L1; j++)
+    {
+      leds1[j] = led_background_color;     
+    }
+    FastLED.delay(1000);
+  }
+  Serial.printf("Finished light test\n");
 }
 
 // Returns a % b.
