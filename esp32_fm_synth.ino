@@ -310,9 +310,14 @@ void setupLeds()
   FastLED.addLeds<WS2812B, 5, LED_COLOR_ORDER>(leds0, NUM_L0);
   FastLED.addLeds<WS2812B, 18, LED_COLOR_ORDER>(leds1, NUM_L1);
   FastLED.addLeds<WS2812B, 23, LED_COLOR_ORDER>(leds2, NUM_L2);
+
+  // Adding this strip caused the CRGB::Purple background (faded) color to be a no-op (black / blank ) 
+  // at 100 brightness, but only on the 0th LED strip. The same color works on all of the other strips. 
+  // Setting the brightness to 127 (and possible 126 -untested) makes the purple show up again. But 
+  // the same purple looks slightly different on the first strip... 
   FastLED.addLeds<WS2812B, 22, LED_COLOR_ORDER>(leds3, NUM_L3);
 
-  FastLED.setBrightness(100); // 0-255
+  FastLED.setBrightness(127); // 0-255
   // FastLED.setMaxRefreshRate(0);
 
   FastLED.setDither(1);
