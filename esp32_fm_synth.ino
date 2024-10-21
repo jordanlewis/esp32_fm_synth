@@ -208,16 +208,18 @@ const uint8_t gamma8[] = {
 };
 
 // The LED strips have 160 LEDs per meter.
-#define NUM_L1 242
-#define NUM_L2 234
-#define NUM_L3 46
-#define MAX_NUM_LEDS NUM_L1 
+#define NUM_L0 242
+#define NUM_L1 234
+#define NUM_L2 46
+#define NUM_L3 146
+#define MAX_NUM_LEDS NUM_L0 
+CRGB leds0[NUM_L0];
 CRGB leds1[NUM_L1];
 CRGB leds2[NUM_L2];
 CRGB leds3[NUM_L3];
 
-static CRGB *ledss[] = {leds1, leds2, leds3};
-int ledSizes[] = {NUM_L1, NUM_L2, NUM_L3};
+static CRGB *ledss[] = {leds0, leds1, leds2, leds3};
+int ledSizes[] = {NUM_L0, NUM_L1, NUM_L2, NUM_L3};
 
 unsigned int chord_counter = 0;
 #define LED_COLOR_ORDER GRB
@@ -305,9 +307,10 @@ void setup()
 
 void setupLeds()
 {
-  FastLED.addLeds<WS2812B, 5, LED_COLOR_ORDER>(leds1, NUM_L1);
-  FastLED.addLeds<WS2812B, 18, LED_COLOR_ORDER>(leds2, NUM_L2);
-  FastLED.addLeds<WS2812B, 23, LED_COLOR_ORDER>(leds3, NUM_L3);
+  FastLED.addLeds<WS2812B, 5, LED_COLOR_ORDER>(leds0, NUM_L0);
+  FastLED.addLeds<WS2812B, 18, LED_COLOR_ORDER>(leds1, NUM_L1);
+  FastLED.addLeds<WS2812B, 23, LED_COLOR_ORDER>(leds2, NUM_L2);
+  FastLED.addLeds<WS2812B, 22, LED_COLOR_ORDER>(leds3, NUM_L3);
 
   FastLED.setBrightness(100); // 0-255
   // FastLED.setMaxRefreshRate(0);
@@ -315,7 +318,7 @@ void setupLeds()
   FastLED.setDither(1);
   FastLED.clear();
   FastLED.show();
-  // lightTest();
+  lightTest();
 
   led_train_length = 50; //divRoundClosest(MAX_NUM_LEDS, LED_TRAIN_LENGTH_FRACTION);
 
@@ -889,6 +892,11 @@ bool doLedTimer(void *)
   CRGB root_color = getColorForNote(lastChord[0]);
   CRGB third_color = getColorForNote(lastChord[1]);
   CRGB fifth_color = getColorForNote(lastChord[2]);
+  CRGB seventh_color = NULL;
+  if (lastChord[3] != 0) {
+    CRGB seventh_color = getColorForNote(lastChord[3]);
+  }
+  
   xSemaphoreGive(lastChordMutex);
 
   int led_train_tail = led_train_head - led_train_length + 1;
@@ -897,14 +905,17 @@ bool doLedTimer(void *)
 
   // This formula works regardless of whether the train length is even or odd. In the odd case,
   // we take advantage of integer truncation.
-  int steps_to_fade_train = (led_train_length + 1) / 2; // TODO odd case = 3
+  int steps_to_fade_train = (led_train_length + 1) / 2; 
   int fade_amount_per_step = divRoundClosest(BACKGROUND_FADE_AMOUNT, steps_to_fade_train);
   bool is_odd = led_train_length % 2 == 1;
 
   CRGB root_background_color = getBackgroundColor(root_color);
   CRGB third_background_color = getBackgroundColor(third_color);
   CRGB fifth_background_color = getBackgroundColor(fifth_color);
-
+  CRGB seventh_background_color = NULL;
+  if (seventh_color != NULL) {
+    seventh_background_color = getBackgroundColor(seventh_color);
+  }
   
   // Why do we iterate backwards? When iterating forwards, we had a weird "color bleed" problem. The 1st LED of
   // the 1st strip would be the color of the last LED in the 2nd strip. Likewise, the 1st LED of the 2nd strip 
@@ -931,13 +942,16 @@ bool doLedTimer(void *)
       CRGB root_train_color = getColorForTrainPosition(root_color, fade_amount_per_step, distance_to_mid_pt);
       CRGB third_train_color = getColorForTrainPosition(third_color, fade_amount_per_step, distance_to_mid_pt);
       CRGB fifth_train_color = getColorForTrainPosition(fifth_color, fade_amount_per_step, distance_to_mid_pt);
+      CRGB seventh_train_color = seventh_color == NULL ? NULL : getColorForTrainPosition(seventh_color, fade_amount_per_step, distance_to_mid_pt);
       setLeds(i, 0, root_train_color);
-      setLeds(i, 1, fifth_train_color);
+      setLeds(i, 1, root_train_color);
       setLeds(i, 2, third_train_color);
+      setLeds(i, 3, seventh_train_color == NULL ? fifth_train_color : seventh_train_color);
     } else {
       setLeds(i, 0, root_background_color);
-      setLeds(i, 1, fifth_background_color);
+      setLeds(i, 1, root_background_color);
       setLeds(i, 2, third_background_color);
+      setLeds(i, 3, seventh_background_color == NULL ? fifth_background_color : seventh_background_color);
     }
   }
 
@@ -968,9 +982,12 @@ bool doLedTimer(void *)
   return true;
 }
 
-void setLeds(int i, int ledNum, CRGB color) {
-  if (0 <= i && i <= ledSizes[ledNum]) {
-    ledss[ledNum][i] = color;
+#define strip3Offset 200
+void setLeds(int ledIndex, int stripIndex, CRGB color) {
+  // if (stripIndex == 3 && strip3Offset <= ledIndex && ledIndex < (ledSizes[stripIndex] + strip3Offset)) {
+    // ledss[stripIndex][ledIndex - strip3Offset] = color;
+  if (0 <= ledIndex && ledIndex < ledSizes[stripIndex]) {
+    ledss[stripIndex][ledIndex] = color;
   }
 }
 
@@ -1026,7 +1043,7 @@ void lightTest()
     led_background_color = scaleGamma(led_background_color);
     for (int j = 0; j < NUM_L1; j++)
     {
-      leds1[j] = led_background_color;     
+      leds0[j] = led_background_color;     
     }
     FastLED.delay(1000);
   }
