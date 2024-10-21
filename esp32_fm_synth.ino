@@ -215,6 +215,10 @@ const uint8_t gamma8[] = {
 CRGB leds1[NUM_L1];
 CRGB leds2[NUM_L2];
 CRGB leds3[NUM_L3];
+
+static CRGB *ledss[] = {leds1, leds2, leds3};
+int ledSizes[] = {NUM_L1, NUM_L2, NUM_L3};
+
 unsigned int chord_counter = 0;
 #define LED_COLOR_ORDER GRB
 
@@ -254,7 +258,7 @@ auto bleepTimer = timer_create_default();
 static int curChannel = 0;
 static int lastChannel = 0;
 
-static int maxBleepWaitMs = 12000;
+static int maxBleepWaitMs = 7000;
 
 // Mutex for reading/writing the lastChord variable
 SemaphoreHandle_t lastChordMutex = NULL;
@@ -746,11 +750,11 @@ bool startChord(void *)
         }
       }
       if (nMatches == 3) {
-        Serial.printf("Found match:");
-        for (int j = 0; j < 4; j++) {
-          Serial.printf(" %d", chords[i][j]);
-        }
-        Serial.println("");
+        //Serial.printf("Found match:");
+        //for (int j = 0; j < 4; j++) {
+        //  Serial.printf(" %d", chords[i][j]);
+        //}
+        //Serial.println("");
         chordArray[nChords] = i;
         nChords += 1;
       }
@@ -759,11 +763,11 @@ bool startChord(void *)
     int chordIdx = random(nChords);
     chord = chords[chordArray[chordIdx]];
     lastChord = chord;
-    Serial.printf("Decided on:");
-    for (int i = 0; i < 4; i++) {
-      Serial.printf(" %d", lastChord[i]);
-    }
-    Serial.println("");
+    //Serial.printf("Decided on:");
+    //for (int i = 0; i < 4; i++) {
+    //  Serial.printf(" %d", lastChord[i]);
+    //}
+    //Serial.println("");
   }
 
 
@@ -809,14 +813,16 @@ static int bleepCount;
 static int bleepChan;
 static int bleepNote;
 static bool bleepPlaying = false;
+static int bleepStrip = 0;
 static bool enableBleeps = true;
+static int bleepDur = 0;
 
 bool doBleepSequence(void *) {
   if (lastChord == NULL || !enableBleeps) {
     bleepSequenceTimer.in(random(maxBleepWaitMs), doBleepSequence);
     return true;
   }
-  int bleepDur = random(400) + 20;
+  bleepDur = random(400) + 20;
   bleepChan = 13;
 
   // Pick random note, if it's a triad ignore the 4th note (0).
@@ -844,11 +850,13 @@ bool doBleep(void *) {
   bleepPlaying = (bleepCount > 0);
   if (!bleepPlaying) {
     // Schedule a new bleep sequence.
+    bleepNote = 0;
+    bleepStrip = random(sizeof(ledSizes) / sizeof(ledSizes[0]));
     bleepSequenceTimer.in(random(maxBleepWaitMs), doBleepSequence);
     return false;
   }
 
-  Serial.printf("bleeping. count=%d, note=%d, chan=%d\n", bleepCount, bleepNote, bleepChan);
+  Serial.printf("bleeping. count=%d, note=%d, chan=%d, strip=%d\n", bleepCount, bleepNote, bleepChan, bleepStrip);
 
   FmSynth_NoteOn(bleepChan, bleepNote, .5);
   bleepCount--;
@@ -859,16 +867,11 @@ bool doBleep(void *) {
 // Ex: 192 means 75% faded
 #define BACKGROUND_FADE_AMOUNT 200
 static int *lastLastChord = NULL;
-int lastDoLedTimer = 0;
+int bleepBeginTime = 0;
+int bleepLit = 0;
 bool doLedTimer(void *)
 {
-  if (lastDoLedTimer != 0) {
-    int now = millis();
-    // Serial.printf("Time since last doLedTimer: %d \n", now - lastDoLedTimer);
-    lastDoLedTimer = now;
-  } else {
-    lastDoLedTimer = millis();
-  }
+  int now = millis();
 
   if (xSemaphoreTake(lastChordMutex, 0xFFFFFF) != pdTRUE) {
     Serial.printf("failed to acquire lastChordMutex in doLedTimer\n");
@@ -928,35 +931,46 @@ bool doLedTimer(void *)
       CRGB root_train_color = getColorForTrainPosition(root_color, fade_amount_per_step, distance_to_mid_pt);
       CRGB third_train_color = getColorForTrainPosition(third_color, fade_amount_per_step, distance_to_mid_pt);
       CRGB fifth_train_color = getColorForTrainPosition(fifth_color, fade_amount_per_step, distance_to_mid_pt);
-      setLeds1(i, root_train_color);
-      setLeds2(i, fifth_train_color);
-      setLeds3(i, third_train_color);
+      setLeds(i, 0, root_train_color);
+      setLeds(i, 1, fifth_train_color);
+      setLeds(i, 2, third_train_color);
     } else {
-      setLeds1(i, root_background_color);
-      setLeds2(i, fifth_background_color);
-      setLeds3(i, third_background_color);
+      setLeds(i, 0, root_background_color);
+      setLeds(i, 1, fifth_background_color);
+      setLeds(i, 2, third_background_color);
     }
   }
 
   led_train_head += 1;
+
+  // Now compute bleeps - we're going to light up the ends of the strips when a bleep is active.
+  if (bleepLit == 0 && bleepNote != 0) {
+    // Begin bleep.
+    bleepBeginTime = now;
+    bleepLit = 1;
+  };
+
+  int durSinceBleepBegin = now-bleepBeginTime;
+  if (bleepLit && durSinceBleepBegin < bleepDur) {
+    // We are in the middle of a bleep.
+    Serial.printf("activating bleep for note %d on strip %d\n", bleepNote, bleepStrip);
+    int stripLen = ledSizes[bleepStrip]-1;
+    CRGB bleepColor = getColorForTrainPosition(getColorForNote(bleepNote), fade_amount_per_step, (1-((bleepDur - durSinceBleepBegin) / bleepDur)) * steps_to_fade_train);
+    for (int i = stripLen; i >= stripLen - 9; i--) {
+      setLeds(i, bleepStrip, bleepColor);
+    }
+  } else {
+    // Disable the bleep light.
+    bleepLit = 0;
+  }
+  
+  
   return true;
 }
 
-void setLeds1(int i, CRGB color) {
-  if (0 <= i && i <= NUM_L1) {
-    leds1[i] = color;
-  }
-}
-
-void setLeds2(int i, CRGB color) {
-  if (0 <= i && i <= NUM_L2) {
-    leds2[i] = color;
-  }
-}
-
-void setLeds3(int i, CRGB color) {
-  if (0 <= i && i <= NUM_L3) {
-    leds3[i] = color;
+void setLeds(int i, int ledNum, CRGB color) {
+  if (0 <= i && i <= ledSizes[ledNum]) {
+    ledss[ledNum][i] = color;
   }
 }
 
