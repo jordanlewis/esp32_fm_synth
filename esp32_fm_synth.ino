@@ -211,15 +211,26 @@ const uint8_t gamma8[] = {
 #define NUM_L0 242
 #define NUM_L1 234
 #define NUM_L2 46
+// NUM_L3 is the total length of the fourth strip, which is split into 2 segments.
 #define NUM_L3 146
-#define MAX_NUM_LEDS NUM_L0 
+// NUM_L3 is the length of the first segment of the fourth strip.
+#define NUM_L3_P1 80
+// The longest strip happens to be the second segment of the 4th strips, since it's connected
+// at a high offset to one of the branches.
+#define L3_P2_OFFSET 197
+#define MAX_NUM_LEDS (L3_P2_OFFSET + NUM_L3-NUM_L3_P1)
 CRGB leds0[NUM_L0];
 CRGB leds1[NUM_L1];
 CRGB leds2[NUM_L2];
 CRGB leds3[NUM_L3];
+// The 5th LED strip is simply the second half of the 4th LED strip,
+// so we use a single long array for it, and divide that long array
+// in 2.
+CRGB *leds4 = leds3 + 80;
 
-static CRGB *ledss[] = {leds0, leds1, leds2, leds3};
-int ledSizes[] = {NUM_L0, NUM_L1, NUM_L2, NUM_L3};
+static CRGB *ledss[] = {leds0, leds1, leds2, leds3, leds4};
+int ledSizes[] = {NUM_L0, NUM_L1, NUM_L2, NUM_L3_P1, NUM_L3-NUM_L3_P1};
+int ledOffsets[] = {0, 0, 0, 168, L3_P2_OFFSET};
 
 unsigned int chord_counter = 0;
 #define LED_COLOR_ORDER GRB
@@ -323,7 +334,7 @@ void setupLeds()
   FastLED.setDither(1);
   FastLED.clear();
   FastLED.show();
-  lightTest();
+  //lightTest();
 
   led_train_length = 50; //divRoundClosest(MAX_NUM_LEDS, LED_TRAIN_LENGTH_FRACTION);
 
@@ -337,9 +348,9 @@ void setupLeds()
   //
   // Maybe we need to implement a custom timer using the millis() function that will correct itself if
   // things get off??
-  int led_timer_ms = 8000 / (MAX_NUM_LEDS + led_train_length);
+  int led_timer_ms = 7550 / (MAX_NUM_LEDS + led_train_length);
   Serial.printf("Led Timer MS target: %d\n", led_timer_ms);
-  timerLeds.every(led_timer_ms, doLedTimer);
+  timerLeds.every(10, doLedTimer);
 }
 
 void loopLeds()
@@ -877,6 +888,7 @@ bool doBleep(void *) {
 static int *lastLastChord = NULL;
 int bleepBeginTime = 0;
 int bleepLit = 0;
+int chordBeginTime = 0;
 bool doLedTimer(void *)
 {
   int now = millis();
@@ -891,6 +903,7 @@ bool doLedTimer(void *)
     // The chord just changed, i.e. it's been 8 seconds
     lastLastChord = lastChord;
     led_train_head = 0;
+    chordBeginTime = now;
     // Serial.printf("chord changed\n");
   }
 
@@ -903,6 +916,9 @@ bool doLedTimer(void *)
   }
   
   xSemaphoreGive(lastChordMutex);
+  double fractionThroughCycle = 1-((double)((double)8000 - (now-chordBeginTime))/(double)8000);
+  led_train_head = fractionThroughCycle * (MAX_NUM_LEDS + led_train_length);
+  //Serial.printf("Fraction through cycle: %f: %d\n", fractionThroughCycle, led_train_head);
 
   int led_train_tail = led_train_head - led_train_length + 1;
   int train_mid_pt;
@@ -952,31 +968,38 @@ bool doLedTimer(void *)
       setLeds(i, 1, root_train_color);
       setLeds(i, 2, third_train_color);
       setLeds(i, 3, seventh_train_color == NULL ? fifth_train_color : seventh_train_color);
+      setLeds(i, 4, seventh_train_color == NULL ? fifth_train_color : seventh_train_color);
     } else {
       setLeds(i, 0, root_background_color);
       setLeds(i, 1, root_background_color);
       setLeds(i, 2, third_background_color);
       setLeds(i, 3, seventh_background_color == NULL ? fifth_background_color : seventh_background_color);
+      setLeds(i, 4, seventh_background_color == NULL ? fifth_background_color : seventh_background_color);
     }
   }
 
-  led_train_head += 1;
+  //led_train_head += 1;
 
   // Now compute bleeps - we're going to light up the ends of the strips when a bleep is active.
-  if (bleepLit == 0 && bleepNote != 0) {
+  if (bleepLit == 0 && bleepNote != 0 && bleepPlaying) {
     // Begin bleep.
     bleepBeginTime = now;
     bleepLit = 1;
   };
+  if (bleepNote == 0) {
+    bleepLit = 0;
+  }
 
   int durSinceBleepBegin = now-bleepBeginTime;
   if (bleepLit && durSinceBleepBegin < bleepDur) {
     // We are in the middle of a bleep.
     Serial.printf("activating bleep for note %d on strip %d\n", bleepNote, bleepStrip);
-    int stripLen = ledSizes[bleepStrip]-1;
-    CRGB bleepColor = getColorForTrainPosition(getColorForNote(bleepNote), fade_amount_per_step, (1-((bleepDur - durSinceBleepBegin) / bleepDur)) * steps_to_fade_train);
-    for (int i = stripLen; i >= stripLen - 9; i--) {
-      setLeds(i, bleepStrip, bleepColor);
+    int stripEnd = ledSizes[bleepStrip] + ledOffsets[bleepStrip] - 1;
+    CRGB bleepColor = getColorForNote(bleepNote);
+    // This commented out code attempted temporal fading which is kind of pointless because the bleeps are short.
+    //CRGB bleepColor = getColorForTrainPosition(getColorForNote(bleepNote), fade_amount_per_step, (1-((bleepDur - durSinceBleepBegin) / bleepDur)) * steps_to_fade_train);
+    for (int i = stripEnd; i >= stripEnd - 25; i--) {
+      setLeds(i, bleepStrip, getColorForTrainPosition(bleepColor, fade_amount_per_step, stripEnd-i));
     }
   } else {
     // Disable the bleep light.
@@ -987,11 +1010,9 @@ bool doLedTimer(void *)
   return true;
 }
 
-#define strip3Offset 200
 void setLeds(int ledIndex, int stripIndex, CRGB color) {
-  // if (stripIndex == 3 && strip3Offset <= ledIndex && ledIndex < (ledSizes[stripIndex] + strip3Offset)) {
-    // ledss[stripIndex][ledIndex - strip3Offset] = color;
-  if (0 <= ledIndex && ledIndex < ledSizes[stripIndex]) {
+  ledIndex -= ledOffsets[stripIndex];
+  if (0 <= ledIndex && ledIndex < ledSizes[stripIndex] + ledOffsets[stripIndex]) {
     ledss[stripIndex][ledIndex] = color;
   }
 }
