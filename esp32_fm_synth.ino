@@ -328,13 +328,13 @@ void setupLeds()
   // the same purple looks slightly different on the first strip... 
   FastLED.addLeds<WS2812B, 22, LED_COLOR_ORDER>(leds3, NUM_L3);
 
-  FastLED.setBrightness(127); // 0-255
+  FastLED.setBrightness(255); // 0-255
   // FastLED.setMaxRefreshRate(0);
 
   FastLED.setDither(1);
   FastLED.clear();
   FastLED.show();
-  //lightTest();
+  lightTest();
 
   led_train_length = 50; //divRoundClosest(MAX_NUM_LEDS, LED_TRAIN_LENGTH_FRACTION);
 
@@ -1018,13 +1018,21 @@ void setLeds(int ledIndex, int stripIndex, CRGB color) {
 }
 
 const CRGB colors[] = {
-  CRGB::Blue,
-  CRGB::Red,
-  CRGB::Yellow,
-  CRGB::Magenta,
-  CRGB::Purple,
-  CRGB::Cyan,
-  CRGB::Violet
+  CRGB::LightCoral,
+  CRGB::FireBrick,
+  CRGB::Gold,
+  CRGB::HotPink,
+  CRGB::Tomato,
+  CRGB::SaddleBrown,
+  CRGB::Orange
+
+// CRGB(255, 255, 0), // yellow
+// CRGB(255, 176, 0), // orange
+// CRGB(255, 0, 0), // red
+// CRGB(255, 52, 222), // pink
+// CRGB(177, 0, 255), // purple
+// CRGB(72, 219, 203), // teal
+// CRGB(0, 255, 0) // green
 };
 CRGB getColorForNote(int midi_note)
 {
@@ -1061,7 +1069,7 @@ CRGB scaleGamma(CRGB color)
 void lightTest()
 {
   Serial.printf("Starting light test\n");
-  FastLED.delay(1000);
+  FastLED.delay(500);
   for (int i = 0; i < 7; i++)
   {
     CRGB led_background_color = colors[i];
@@ -1071,7 +1079,7 @@ void lightTest()
     {
       leds0[j] = led_background_color;     
     }
-    FastLED.delay(1000);
+    FastLED.delay(500);
   }
   Serial.printf("Finished light test\n");
 }
@@ -1122,6 +1130,7 @@ void loopAudio()
   audio_task();
 }
 
+
 /*
    this is the main loop
 */
@@ -1148,6 +1157,7 @@ void loop()
   } else if (newVal == 1) {
     key2val = newVal;
   }
+
   delay(1);
   yield();
 }
