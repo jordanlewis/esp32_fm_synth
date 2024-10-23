@@ -218,19 +218,22 @@ const uint8_t gamma8[] = {
 // The longest strip happens to be the second segment of the 4th strips, since it's connected
 // at a high offset to one of the branches.
 #define L3_P2_OFFSET 197
+#define NUM_L5 110
 #define MAX_NUM_LEDS (L3_P2_OFFSET + NUM_L3-NUM_L3_P1)
 CRGB leds0[NUM_L0];
 CRGB leds1[NUM_L1];
 CRGB leds2[NUM_L2];
 CRGB leds3[NUM_L3];
+
 // The 5th LED strip is simply the second half of the 4th LED strip,
 // so we use a single long array for it, and divide that long array
 // in 2.
 CRGB *leds4 = leds3 + 80;
+CRGB leds5[NUM_L5];
 
-static CRGB *ledss[] = {leds0, leds1, leds2, leds3, leds4};
+static CRGB *ledss[] = {leds0, leds1, leds2, leds3, leds4, leds5};
 int ledSizes[] = {NUM_L0, NUM_L1, NUM_L2, NUM_L3_P1, NUM_L3-NUM_L3_P1};
-int ledOffsets[] = {0, 0, 0, 168, L3_P2_OFFSET};
+int ledOffsets[] = {0, 0, 0, 168, L3_P2_OFFSET, 0};
 
 unsigned int chord_counter = 0;
 #define LED_COLOR_ORDER GRB
@@ -327,11 +330,14 @@ void setupLeds()
   // Setting the brightness to 127 (and possible 126 -untested) makes the purple show up again. But 
   // the same purple looks slightly different on the first strip... 
   FastLED.addLeds<WS2812B, 22, LED_COLOR_ORDER>(leds3, NUM_L3);
+  FastLED.addLeds<WS2812B, 21, LED_COLOR_ORDER>(leds5, NUM_L5);
 
+  // FastLED.setCorrection(TypicalLEDStrip);
+  // FastLED.setTemperature(Tungsten100W);
   FastLED.setBrightness(255); // 0-255
+  FastLED.setDither(1);
   // FastLED.setMaxRefreshRate(0);
 
-  FastLED.setDither(1);
   FastLED.clear();
   FastLED.show();
   lightTest();
@@ -969,12 +975,14 @@ bool doLedTimer(void *)
       setLeds(i, 2, third_train_color);
       setLeds(i, 3, seventh_train_color == NULL ? fifth_train_color : seventh_train_color);
       setLeds(i, 4, seventh_train_color == NULL ? fifth_train_color : seventh_train_color);
+      setLeds(i, 5, fifth_train_color);
     } else {
       setLeds(i, 0, root_background_color);
       setLeds(i, 1, root_background_color);
       setLeds(i, 2, third_background_color);
       setLeds(i, 3, seventh_background_color == NULL ? fifth_background_color : seventh_background_color);
       setLeds(i, 4, seventh_background_color == NULL ? fifth_background_color : seventh_background_color);
+      setLeds(i, 5, fifth_background_color);
     }
   }
 
@@ -993,7 +1001,7 @@ bool doLedTimer(void *)
   int durSinceBleepBegin = now-bleepBeginTime;
   if (bleepLit && durSinceBleepBegin < bleepDur) {
     // We are in the middle of a bleep.
-    Serial.printf("activating bleep for note %d on strip %d\n", bleepNote, bleepStrip);
+    // Serial.printf("activating bleep for note %d on strip %d\n", bleepNote, bleepStrip);
     int stripEnd = ledSizes[bleepStrip] + ledOffsets[bleepStrip] - 1;
     CRGB bleepColor = getColorForNote(bleepNote);
     // This commented out code attempted temporal fading which is kind of pointless because the bleeps are short.
