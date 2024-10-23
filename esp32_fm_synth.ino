@@ -225,14 +225,14 @@ CRGB leds1[NUM_L1];
 CRGB leds2[NUM_L2];
 CRGB leds3[NUM_L3];
 
-// The 5th LED strip is simply the second half of the 4th LED strip,
+// The 4th LED strip is simply the second half of the 3rd LED strip,
 // so we use a single long array for it, and divide that long array
 // in 2.
 CRGB *leds4 = leds3 + 80;
 CRGB leds5[NUM_L5];
 
 static CRGB *ledss[] = {leds0, leds1, leds2, leds3, leds4, leds5};
-int ledSizes[] = {NUM_L0, NUM_L1, NUM_L2, NUM_L3_P1, NUM_L3-NUM_L3_P1};
+int ledSizes[] = {NUM_L0, NUM_L1, NUM_L2, NUM_L3_P1, NUM_L3-NUM_L3_P1, NUM_L5};
 int ledOffsets[] = {0, 0, 0, 168, L3_P2_OFFSET, 0};
 
 unsigned int chord_counter = 0;
