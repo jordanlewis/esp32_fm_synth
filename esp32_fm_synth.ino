@@ -213,27 +213,33 @@ const uint8_t gamma8[] = {
 #define NUM_L2 46
 // NUM_L3 is the total length of the 3rd strip, which is split into 2 segments.
 #define NUM_L3 146
-// NUM_L3 is the length of the first segment of the 3rd strip.
+// NUM_L3_P1 is the length of the first segment of the 3rd strip.
 #define NUM_L3_P1 80
 // The longest strip happens to be the second segment of the 4th strips, since it's connected
 // at a high offset to one of the branches.
-#define L3_P2_OFFSET 197
+#define L3_P2_OFFSET 194
+// NUM_L5 is the total length of the 5th strip, which is split into 2 segments
 #define NUM_L5 98
+// NUM_L5_P1 is the length of the first segment of the 5th strip.
+#define NUM_L5_P1 70
 #define MAX_NUM_LEDS (L3_P2_OFFSET + NUM_L3-NUM_L3_P1)
 CRGB leds0[NUM_L0];
 CRGB leds1[NUM_L1];
 CRGB leds2[NUM_L2];
 CRGB leds3[NUM_L3];
-
 // The 4th LED strip is simply the second half of the 3rd LED strip,
 // so we use a single long array for it, and divide that long array
 // in 2.
-CRGB *leds4 = leds3 + 80;
+CRGB *leds4 = leds3 + NUM_L3_P1;
 CRGB leds5[NUM_L5];
+// The 6th LED strip is simply the second half of the 5th LED strip,
+// so we use a single long array for it, and divide that long array
+// in 2.
+CRGB *leds6 = leds5 + NUM_L5_P1;
 
-static CRGB *ledss[] = {leds0, leds1, leds2, leds3, leds4, leds5};
-int ledSizes[] = {NUM_L0, NUM_L1, NUM_L2, NUM_L3_P1, NUM_L3-NUM_L3_P1, NUM_L5};
-int ledOffsets[] = {0, 0, 0, 168, L3_P2_OFFSET, 0};
+static CRGB *ledss[] = {leds0, leds1, leds2, leds3, leds4, leds5, leds6};
+int ledSizes[] = {NUM_L0, NUM_L1, NUM_L2, NUM_L3_P1, NUM_L3-NUM_L3_P1, NUM_L5_P1, NUM_L5-NUM_L5_P1};
+int ledOffsets[] = {0, 0, 0, 168, L3_P2_OFFSET, 128, 176};
 
 unsigned int chord_counter = 0;
 #define LED_COLOR_ORDER GRB
@@ -972,6 +978,7 @@ bool doLedTimer(void *)
       setLeds(i, 3, seventh_train_color == NULL ? fifth_train_color : seventh_train_color);
       setLeds(i, 4, seventh_train_color == NULL ? fifth_train_color : seventh_train_color);
       setLeds(i, 5, fifth_train_color);
+      setLeds(i, 6, third_train_color);
     } else {
       setLeds(i, 0, root_background_color);
       setLeds(i, 1, root_background_color);
@@ -979,6 +986,7 @@ bool doLedTimer(void *)
       setLeds(i, 3, seventh_background_color == NULL ? fifth_background_color : seventh_background_color);
       setLeds(i, 4, seventh_background_color == NULL ? fifth_background_color : seventh_background_color);
       setLeds(i, 5, fifth_background_color);
+      setLeds(i, 6, third_background_color);
     }
   }
 
