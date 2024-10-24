@@ -211,14 +211,14 @@ const uint8_t gamma8[] = {
 #define NUM_L0 242
 #define NUM_L1 234
 #define NUM_L2 46
-// NUM_L3 is the total length of the fourth strip, which is split into 2 segments.
+// NUM_L3 is the total length of the 3rd strip, which is split into 2 segments.
 #define NUM_L3 146
-// NUM_L3 is the length of the first segment of the fourth strip.
+// NUM_L3 is the length of the first segment of the 3rd strip.
 #define NUM_L3_P1 80
 // The longest strip happens to be the second segment of the 4th strips, since it's connected
 // at a high offset to one of the branches.
 #define L3_P2_OFFSET 197
-#define NUM_L5 110
+#define NUM_L5 98
 #define MAX_NUM_LEDS (L3_P2_OFFSET + NUM_L3-NUM_L3_P1)
 CRGB leds0[NUM_L0];
 CRGB leds1[NUM_L1];
@@ -477,10 +477,6 @@ void Core0Task(void *parameter)
   while (true)
   {
     loopAudio();
-
-    /* this seems necessary to trigger the watchdog */
-    delay(1);
-    yield();
   }
 }
 inline
