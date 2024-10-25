@@ -1029,22 +1029,22 @@ void setLeds(int ledIndex, int stripIndex, CRGB color) {
   }
 }
 
-const CRGB colors[] = {
-  CRGB::LightCoral,
-  CRGB::FireBrick,
-  CRGB::Gold,
-  CRGB::HotPink,
-  CRGB::Tomato,
-  CRGB::SaddleBrown,
-  CRGB::Orange
+CRGB colors[] = {
+//  CRGB(CRGB::LightCoral),
+//  CRGB(CRGB::FireBrick),
+//  CRGB(CRGB::Gold),
+//  CRGB(CRGB::HotPink),
+//  CRGB(CRGB::Tomato),
+//  CRGB(CRGB::SaddleBrown),
+//  CRGB(CRGB::Orange)
 
-// CRGB(255, 255, 0), // yellow
-// CRGB(255, 176, 0), // orange
-// CRGB(255, 0, 0), // red
-// CRGB(255, 52, 222), // pink
-// CRGB(177, 0, 255), // purple
-// CRGB(72, 219, 203), // teal
-// CRGB(0, 255, 0) // green
+   CRGB(182, 26, 182), // purpleish
+   CRGB(200, 0, 34), // red/pink
+   CRGB(254, 128, 58), // red
+   CRGB(184, 212, 148), // pink
+   CRGB(202, 127, 146), // purple
+   CRGB(142, 172, 58), // teal
+   CRGB(255, 165, 0) // green
 };
 CRGB getColorForNote(int midi_note)
 {
