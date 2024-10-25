@@ -249,22 +249,22 @@ struct midiControllerMapping circuitMapping[] =
 
     /* fx 1 */
 
-    { 15, 111, "A1", NULL, FmSynth_ToggleMono, 0},
-    { 15, 112, "A2", NULL, FmSynth_ToggleLegato, 1},
-    { 15, 113, "A3", NULL, FmSynth_ChannelSettingDump, 2},
-    { 15, 114, "A4", NULL, FmSynth_ChannelSettingInit, 3},
-    { 15, 115, "A5", NULL, FmSynth_SelectOp, 0},
-    { 15, 116, "A6", NULL, FmSynth_SelectOp, 1},
+    { 15, 111, "A1", NULL, LEDChange, 0},
+    { 15, 112, "A2", NULL, LEDChange, 1},
+    { 15, 113, "A3", NULL, LEDChange, 2},
+    { 15, 114, "A4", NULL, LEDStrip, 0},
+    { 15, 115, "A5", NULL, LEDStrip, 1},
+    { 15, 116, "A6", NULL, LEDStrip, 2},
 
 
     /* fx 2 */
 
-    { 15, 88, "A1", NULL, FmSynth_ToggleMono, 0},
-    { 15, 89, "A2", NULL, FmSynth_ToggleLegato, 1},
-    { 15, 90, "A3", NULL, FmSynth_ChannelSettingDump, 2},
-    { 15, 106, "A4", NULL, FmSynth_ChannelSettingInit, 3},
-    { 15, 109, "A5", NULL, FmSynth_SelectOp, 0},
-    { 15, 110, "A6", NULL, FmSynth_SelectOp, 1},
+    { 15, 88, "A1", NULL, LEDStrip, 3},
+    { 15, 89, "A2", NULL, LEDStrip, 4},
+    { 15, 90, "A3", NULL, LEDStrip, 5},
+    { 15, 106, "A4", NULL, LEDStrip, 6},
+    { 15, 109, "A5", NULL, LEDStrip, 7},
+    { 15, 110, "A6", NULL, LEDStrip, 8},
 
     /* Filter  */
     { 15, 74, "H1", NULL, Reverb_SetLevel, 0},

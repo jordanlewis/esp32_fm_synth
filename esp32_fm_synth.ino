@@ -79,121 +79,121 @@ static float click_supp_gain = 0.0f;
 
 #define N_CHORDS 105
 static int chords[N_CHORDS][4] = {
-  {45, 48, 52, 0},
-  {57, 48, 52, 0},
-  {57, 60, 52, 0},
-  {45, 48, 52, 55},
-  {57, 48, 52, 55},
-  {57, 60, 52, 55},
-  {57, 60, 64, 55},
-  {48, 52, 55, 0},
-  {60, 52, 55, 0},
-  {60, 64, 55, 0},
-  {48, 52, 55, 59},
-  {60, 52, 55, 59},
-  {60, 64, 55, 59},
-  {60, 64, 67, 59},
-  {50, 53, 57, 0},
-  {62, 53, 57, 0},
-  {62, 65, 57, 0},
-  {50, 53, 57, 60},
-  {62, 53, 57, 60},
-  {62, 65, 57, 60},
-  {62, 65, 69, 60},
-  {52, 55, 59, 0},
-  {64, 55, 59, 0},
-  {64, 67, 59, 0},
-  {52, 55, 59, 62},
-  {64, 55, 59, 62},
-  {64, 67, 59, 62},
-  {64, 67, 71, 62},
-  {53, 57, 60, 0},
-  {65, 57, 60, 0},
-  {65, 69, 60, 0},
-  {53, 57, 60, 64},
-  {65, 57, 60, 64},
-  {65, 69, 60, 64},
-  {65, 69, 72, 64},
-  {55, 59, 62, 0},
-  {67, 59, 62, 0},
-  {67, 71, 62, 0},
-  {55, 59, 62, 65},
-  {67, 59, 62, 65},
-  {67, 71, 62, 65},
-  {67, 71, 74, 65},
-  {57, 60, 64, 0},
-  {69, 60, 64, 0},
-  {69, 72, 64, 0},
-  {57, 60, 64, 67},
-  {69, 60, 64, 67},
-  {69, 72, 64, 67},
-  {69, 72, 76, 67},
-  {60, 64, 67, 0},
-  {72, 64, 67, 0},
-  {72, 76, 67, 0},
-  {60, 64, 67, 71},
-  {72, 64, 67, 71},
-  {72, 76, 67, 71},
-  {72, 76, 79, 71},
-  {62, 65, 69, 0},
-  {74, 65, 69, 0},
-  {74, 77, 69, 0},
-  {62, 65, 69, 72},
-  {74, 65, 69, 72},
-  {74, 77, 69, 72},
-  {74, 77, 81, 72},
-  {64, 67, 71, 0},
-  {76, 67, 71, 0},
-  {76, 79, 71, 0},
-  {64, 67, 71, 74},
-  {76, 67, 71, 74},
-  {76, 79, 71, 74},
-  {76, 79, 83, 74},
-  {65, 69, 72, 0},
-  {77, 69, 72, 0},
-  {77, 81, 72, 0},
-  {65, 69, 72, 76},
-  {77, 69, 72, 76},
-  {77, 81, 72, 76},
-  {77, 81, 84, 76},
-  {67, 71, 74, 0},
-  {79, 71, 74, 0},
-  {79, 83, 74, 0},
-  {67, 71, 74, 77},
-  {79, 71, 74, 77},
-  {79, 83, 74, 77},
-  {79, 83, 86, 77},
-  {69, 72, 76, 0},
-  {81, 72, 76, 0},
-  {81, 84, 76, 0},
-  {69, 72, 76, 79},
-  {81, 72, 76, 79},
-  {81, 84, 76, 79},
-  {81, 84, 88, 79},
-  {72, 76, 79, 0},
-  {84, 76, 79, 0},
-  {84, 88, 79, 0},
-  {72, 76, 79, 83},
-  {84, 76, 79, 83},
-  {84, 88, 79, 83},
-  {84, 88, 91, 83},
-  {74, 77, 81, 0},
-  {86, 77, 81, 0},
-  {86, 89, 81, 0},
-  {74, 77, 81, 84},
-  {86, 77, 81, 84},
-  {86, 89, 81, 84},
-  {86, 89, 93, 84}
+  { 45, 48, 52, 0 },
+  { 57, 48, 52, 0 },
+  { 57, 60, 52, 0 },
+  { 45, 48, 52, 55 },
+  { 57, 48, 52, 55 },
+  { 57, 60, 52, 55 },
+  { 57, 60, 64, 55 },
+  { 48, 52, 55, 0 },
+  { 60, 52, 55, 0 },
+  { 60, 64, 55, 0 },
+  { 48, 52, 55, 59 },
+  { 60, 52, 55, 59 },
+  { 60, 64, 55, 59 },
+  { 60, 64, 67, 59 },
+  { 50, 53, 57, 0 },
+  { 62, 53, 57, 0 },
+  { 62, 65, 57, 0 },
+  { 50, 53, 57, 60 },
+  { 62, 53, 57, 60 },
+  { 62, 65, 57, 60 },
+  { 62, 65, 69, 60 },
+  { 52, 55, 59, 0 },
+  { 64, 55, 59, 0 },
+  { 64, 67, 59, 0 },
+  { 52, 55, 59, 62 },
+  { 64, 55, 59, 62 },
+  { 64, 67, 59, 62 },
+  { 64, 67, 71, 62 },
+  { 53, 57, 60, 0 },
+  { 65, 57, 60, 0 },
+  { 65, 69, 60, 0 },
+  { 53, 57, 60, 64 },
+  { 65, 57, 60, 64 },
+  { 65, 69, 60, 64 },
+  { 65, 69, 72, 64 },
+  { 55, 59, 62, 0 },
+  { 67, 59, 62, 0 },
+  { 67, 71, 62, 0 },
+  { 55, 59, 62, 65 },
+  { 67, 59, 62, 65 },
+  { 67, 71, 62, 65 },
+  { 67, 71, 74, 65 },
+  { 57, 60, 64, 0 },
+  { 69, 60, 64, 0 },
+  { 69, 72, 64, 0 },
+  { 57, 60, 64, 67 },
+  { 69, 60, 64, 67 },
+  { 69, 72, 64, 67 },
+  { 69, 72, 76, 67 },
+  { 60, 64, 67, 0 },
+  { 72, 64, 67, 0 },
+  { 72, 76, 67, 0 },
+  { 60, 64, 67, 71 },
+  { 72, 64, 67, 71 },
+  { 72, 76, 67, 71 },
+  { 72, 76, 79, 71 },
+  { 62, 65, 69, 0 },
+  { 74, 65, 69, 0 },
+  { 74, 77, 69, 0 },
+  { 62, 65, 69, 72 },
+  { 74, 65, 69, 72 },
+  { 74, 77, 69, 72 },
+  { 74, 77, 81, 72 },
+  { 64, 67, 71, 0 },
+  { 76, 67, 71, 0 },
+  { 76, 79, 71, 0 },
+  { 64, 67, 71, 74 },
+  { 76, 67, 71, 74 },
+  { 76, 79, 71, 74 },
+  { 76, 79, 83, 74 },
+  { 65, 69, 72, 0 },
+  { 77, 69, 72, 0 },
+  { 77, 81, 72, 0 },
+  { 65, 69, 72, 76 },
+  { 77, 69, 72, 76 },
+  { 77, 81, 72, 76 },
+  { 77, 81, 84, 76 },
+  { 67, 71, 74, 0 },
+  { 79, 71, 74, 0 },
+  { 79, 83, 74, 0 },
+  { 67, 71, 74, 77 },
+  { 79, 71, 74, 77 },
+  { 79, 83, 74, 77 },
+  { 79, 83, 86, 77 },
+  { 69, 72, 76, 0 },
+  { 81, 72, 76, 0 },
+  { 81, 84, 76, 0 },
+  { 69, 72, 76, 79 },
+  { 81, 72, 76, 79 },
+  { 81, 84, 76, 79 },
+  { 81, 84, 88, 79 },
+  { 72, 76, 79, 0 },
+  { 84, 76, 79, 0 },
+  { 84, 88, 79, 0 },
+  { 72, 76, 79, 83 },
+  { 84, 76, 79, 83 },
+  { 84, 88, 79, 83 },
+  { 84, 88, 91, 83 },
+  { 74, 77, 81, 0 },
+  { 86, 77, 81, 0 },
+  { 86, 89, 81, 0 },
+  { 74, 77, 81, 84 },
+  { 86, 77, 81, 84 },
+  { 86, 89, 81, 84 },
+  { 86, 89, 93, 84 }
 };
 
 // LED gamma correction: https://learn.adafruit.com/led-tricks-gamma-correction/the-quick-fix
 // We don't use PROGMEM because it's slower and we are not RAM limited.
 const uint8_t gamma8[] = {
-  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,
-  1,  1,  1,  1,  1,  1,  1,  1,  1,  2,  2,  2,  2,  2,  2,  2,
-  2,  3,  3,  3,  3,  3,  3,  3,  4,  4,  4,  4,  4,  5,  5,  5,
-  5,  6,  6,  6,  6,  7,  7,  7,  7,  8,  8,  8,  9,  9,  9, 10,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1,
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2,
+  2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 5, 5, 5,
+  5, 6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10,
   10, 10, 11, 11, 11, 12, 12, 13, 13, 13, 14, 14, 15, 15, 16, 16,
   17, 17, 18, 18, 19, 19, 20, 20, 21, 21, 22, 22, 23, 24, 24, 25,
   25, 26, 27, 27, 28, 29, 29, 30, 31, 32, 32, 33, 34, 35, 35, 36,
@@ -287,8 +287,7 @@ SemaphoreHandle_t lastChordMutex = NULL;
 static int *lastChord = NULL;
 
 /* this application starts here */
-void setup()
-{
+void setup() {
   // put your setup code here, to run once:
   delay(250);
   Serial.begin(SERIAL_BAUDRATE);
@@ -319,22 +318,21 @@ void setup()
 
   int chordIdx = random(N_CHORDS);
   lastChord = chords[chordIdx];
-  setupLeds();
   lastChordMutex = xSemaphoreCreateMutex();
-  Core0TaskInit(); // audio
-  Core1TaskInit(); // LEDs
+  Core0TaskInit();  // audio
+  setupLeds();
+  Core1TaskInit();  // LEDs
 }
 
-void setupLeds()
-{
+void setupLeds() {
   FastLED.addLeds<WS2812B, 5, LED_COLOR_ORDER>(leds0, NUM_L0);
   FastLED.addLeds<WS2812B, 18, LED_COLOR_ORDER>(leds1, NUM_L1);
   FastLED.addLeds<WS2812B, 23, LED_COLOR_ORDER>(leds2, NUM_L2);
 
-  // Adding this strip caused the CRGB::Purple background (faded) color to be a no-op (black / blank ) 
-  // at 100 brightness, but only on the 0th LED strip. The same color works on all of the other strips. 
-  // Setting the brightness to 127 (and possible 126 -untested) makes the purple show up again. But 
-  // the same purple looks slightly different on the first strip... 
+  // Adding this strip caused the CRGB::Purple background (faded) color to be a no-op (black / blank )
+  // at 100 brightness, but only on the 0th LED strip. The same color works on all of the other strips.
+  // Setting the brightness to 127 (and possible 126 -untested) makes the purple show up again. But
+  // the same purple looks slightly different on the first strip...
   FastLED.addLeds<WS2812B, 22, LED_COLOR_ORDER>(leds3, NUM_L3);
   FastLED.addLeds<WS2812B, 21, LED_COLOR_ORDER>(leds5, NUM_L5);
 
@@ -346,9 +344,11 @@ void setupLeds()
 
   FastLED.clear();
   FastLED.show();
-  lightTest();
+  led_train_length = 50;  //divRoundClosest(MAX_NUM_LEDS, LED_TRAIN_LENGTH_FRACTION);
 
-  led_train_length = 50; //divRoundClosest(MAX_NUM_LEDS, LED_TRAIN_LENGTH_FRACTION);
+  
+  //lightTest();
+
 
   // TODO: this timer interval isn't 100% accurate. I'm currently seeing log lines like this:
   // https://gist.github.com/dasl-/c8967188b8ee15a4b60d195d8c776e98
@@ -365,8 +365,7 @@ void setupLeds()
   timerLeds.every(10, doLedTimer);
 }
 
-void loopLeds()
-{
+void loopLeds() {
   int loop_s = millis();
   timerLeds.tick();
 
@@ -376,13 +375,12 @@ void loopLeds()
   FastLED.show();
   int end = millis();
   int show_elapsed = end - show_s;
-  int loop_elapsed = end - loop_s; 
+  int loop_elapsed = end - loop_s;
   // Serial.printf("Show took: %d ms\n", show_elapsed);
   // Serial.printf("loop took: %d ms\n", loop_elapsed);
 }
 
-void setupAudio()
-{
+void setupAudio() {
   Serial.printf("Loading data\n");
   click_supp_gain = 0.0f;
 
@@ -470,30 +468,23 @@ void setupAudio()
 /* this is used to add a task to core 0 */
 TaskHandle_t Core0TaskHnd;
 TaskHandle_t Core1TaskHnd;
-inline
-void Core0TaskInit()
-{
+inline void Core0TaskInit() {
   /* we need a second task for the terminal output */
   xTaskCreatePinnedToCore(Core0Task, "Core0Task", 8192, NULL, 999, &Core0TaskHnd, 0);
 }
 
-void Core0Task(void *parameter)
-{
+void Core0Task(void *parameter) {
   setupAudio();
-  while (true)
-  {
+  while (true) {
     loopAudio();
   }
 }
-inline
-void Core1TaskInit()
-{
+inline void Core1TaskInit() {
   /* we need a second task for the terminal output */
   xTaskCreatePinnedToCore(Core1Task, "Core1Task", 8192, NULL, 999, &Core1TaskHnd, 1);
 }
 
-void Core1Task(void *parameter)
-{
+void Core1Task(void *parameter) {
   while (true) {
     loopLeds();
   }
@@ -505,8 +496,7 @@ float master_output_gain = 0.15f;
 
 #ifdef ESP32_AUDIO_KIT
 /* little enum to make switching more clear */
-enum acSource
-{
+enum acSource {
   acSrcLine,
   acSrcMic
 };
@@ -515,12 +505,9 @@ enum acSource
 enum acSource selSource = acSrcLine;
 
 /* be carefull when calling this function, microphones can cause very bad feedback!!! */
-void App_ToggleSource(uint8_t channel, float value)
-{
-  if (value > 0)
-  {
-    switch (selSource)
-    {
+void App_ToggleSource(uint8_t channel, float value) {
+  if (value > 0) {
+    switch (selSource) {
       case acSrcLine:
         click_supp_gain = 0.0f;
 #ifdef AC101_ENABLED
@@ -542,23 +529,19 @@ void App_ToggleSource(uint8_t channel, float value)
 }
 #endif
 
-void App_SetOutputLevel(uint8_t not_used, float value)
-{
+void App_SetOutputLevel(uint8_t not_used, float value) {
   master_output_gain = value;
 }
 
 static uint32_t midiSyncCount = 0;
 
-void Midi_SyncRecvd()
-{
+void Midi_SyncRecvd() {
   midiSyncCount += 1;
 }
 
-void Synth_RealTimeMsg(uint8_t msg)
-{
+void Synth_RealTimeMsg(uint8_t msg) {
 #ifndef MIDI_SYNC_MASTER
-  switch (msg)
-  {
+  switch (msg) {
     case 0xfa: /* start */
       Arp_Reset();
       break;
@@ -571,42 +554,35 @@ void Synth_RealTimeMsg(uint8_t msg)
 
 #ifdef MIDI_SYNC_MASTER
 
-#define MIDI_PPQ    24
-#define SAMPLES_PER_MIN  (SAMPLE_RATE*60)
+#define MIDI_PPQ 24
+#define SAMPLES_PER_MIN (SAMPLE_RATE * 60)
 
 static float midi_tempo = 120.0f;
 
-void MidiSyncMasterLoop(void)
-{
+void MidiSyncMasterLoop(void) {
   static float midiDiv = 0;
   midiDiv += SAMPLE_BUFFER_SIZE;
-  if (midiDiv >= (SAMPLES_PER_MIN) / (MIDI_PPQ * midi_tempo))
-  {
+  if (midiDiv >= (SAMPLES_PER_MIN) / (MIDI_PPQ * midi_tempo)) {
     midiDiv -= (SAMPLES_PER_MIN) / (MIDI_PPQ * midi_tempo);
     Midi_SyncRecvd();
   }
 }
 
-void Synth_SetMidiMasterTempo(uint8_t unused, float val)
-{
+void Synth_SetMidiMasterTempo(uint8_t unused, float val) {
   midi_tempo = 60.0f + val * (240.0f - 60.0f);
 }
 
 #endif
 
-void Synth_SongPosition(uint16_t pos)
-{
+void Synth_SongPosition(uint16_t pos) {
   Serial.printf("Songpos: %d\n", pos);
-  if (pos == 0)
-  {
+  if (pos == 0) {
     Arp_Reset();
   }
 }
 
-void Synth_SongPosReset(uint8_t unused, float var)
-{
-  if (var > 0)
-  {
+void Synth_SongPosReset(uint8_t unused, float var) {
+  if (var > 0) {
     Synth_SongPosition(0);
   }
 }
@@ -624,14 +600,13 @@ static float fr_sample[SAMPLE_BUFFER_SIZE];
 static float m1_sample[SAMPLE_BUFFER_SIZE];
 
 #ifndef absf
-#define absf(a) ((a>=0.0f)?(a):(-a))
+#define absf(a) ((a >= 0.0f) ? (a) : (-a))
 #endif
 
 /*
    the main audio task
 */
-inline void audio_task()
-{
+inline void audio_task() {
 #ifdef AUDIO_PASS_THROUGH
   memset(fl_sample, 0, sizeof(fl_sample));
   memset(fr_sample, 0, sizeof(fr_sample));
@@ -684,8 +659,7 @@ inline void audio_task()
   /*
      apply master output gain
   */
-  for (int n = 0; n < SAMPLE_BUFFER_SIZE; n++)
-  {
+  for (int n = 0; n < SAMPLE_BUFFER_SIZE; n++) {
     /* apply master_output_gain */
     m1_sample[n] *= master_output_gain;
   }
@@ -703,8 +677,7 @@ inline void audio_task()
   /*
      mix mono signal to stereo out
   */
-  for (int n = 0; n < SAMPLE_BUFFER_SIZE; n++)
-  {
+  for (int n = 0; n < SAMPLE_BUFFER_SIZE; n++) {
     m1_sample[n] *= 2.125f;
     //fl_sample[n] += m1_sample[n];
     //fr_sample[n] += m1_sample[n];
@@ -723,8 +696,7 @@ inline void audio_task()
    this function will be called once a second
    call can be delayed when one operation needs more time (> 1/44100s)
 */
-bool loop_1Hz(void *)
-{
+bool loop_1Hz(void *) {
 #ifdef ESP32_AUDIO_KIT
   button_loop();
 #endif
@@ -739,8 +711,7 @@ static bool enableChords = true;
 
 
 int lastStartChordTime = 0;
-bool startChord(void *)
-{
+bool startChord(void *) {
   if (lastStartChordTime != 0) {
     int now = millis();
     // Serial.printf("Time since last startChord: %d \n", now - lastStartChordTime);
@@ -764,9 +735,9 @@ bool startChord(void *)
     // Find all chords that have all but one note in common with the previous chord.
     int chordArray[N_CHORDS];
     int nChords = 0;
-    for (int i = 0; i < N_CHORDS; i++) {   // For each of the top level chords
+    for (int i = 0; i < N_CHORDS; i++) {  // For each of the top level chords
       int nMatches = 0;
-      for (int oldIdx = 0; oldIdx < 4; oldIdx++) { // For each of the notes in the last chord
+      for (int oldIdx = 0; oldIdx < 4; oldIdx++) {    // For each of the notes in the last chord
         for (int newIdx = 0; newIdx < 4; newIdx++) {  // For each of the notes in the new chord
           if (lastChord[oldIdx] == chords[i][newIdx]) {
             // Found a match!
@@ -813,8 +784,7 @@ bool startChord(void *)
   return true;
 }
 
-bool loop_8sec(void *)
-{
+bool loop_8sec(void *) {
   chord_counter++;
   int *chord = lastChord;
   if (chord != NULL) {
@@ -897,8 +867,7 @@ static int *lastLastChord = NULL;
 int bleepBeginTime = 0;
 int bleepLit = 0;
 int chordBeginTime = 0;
-bool doLedTimer(void *)
-{
+bool doLedTimer(void *) {
   int now = millis();
 
   if (xSemaphoreTake(lastChordMutex, 0xFFFFFF) != pdTRUE) {
@@ -922,9 +891,9 @@ bool doLedTimer(void *)
   if (lastChord[3] != 0) {
     CRGB seventh_color = getColorForNote(lastChord[3]);
   }
-  
+
   xSemaphoreGive(lastChordMutex);
-  double fractionThroughCycle = 1-((double)((double)8000 - (now-chordBeginTime))/(double)8000);
+  double fractionThroughCycle = 1 - ((double)((double)8000 - (now - chordBeginTime)) / (double)8000);
   led_train_head = fractionThroughCycle * (MAX_NUM_LEDS + led_train_length);
   //Serial.printf("Fraction through cycle: %f: %d\n", fractionThroughCycle, led_train_head);
 
@@ -934,7 +903,7 @@ bool doLedTimer(void *)
 
   // This formula works regardless of whether the train length is even or odd. In the odd case,
   // we take advantage of integer truncation.
-  int steps_to_fade_train = (led_train_length + 1) / 2; 
+  int steps_to_fade_train = (led_train_length + 1) / 2;
   int fade_amount_per_step = divRoundClosest(BACKGROUND_FADE_AMOUNT, steps_to_fade_train);
   bool is_odd = led_train_length % 2 == 1;
 
@@ -945,12 +914,11 @@ bool doLedTimer(void *)
   if (seventh_color != NULL) {
     seventh_background_color = getBackgroundColor(seventh_color);
   }
-  
+
   // Why do we iterate backwards? When iterating forwards, we had a weird "color bleed" problem. The 1st LED of
-  // the 1st strip would be the color of the last LED in the 2nd strip. Likewise, the 1st LED of the 2nd strip 
+  // the 1st strip would be the color of the last LED in the 2nd strip. Likewise, the 1st LED of the 2nd strip
   // would be the color of the last LED in the 3rd strip. I assume this is due to some data line  interference.
-  for (int i = MAX_NUM_LEDS - 1; i >= 0; i--)
-  {
+  for (int i = MAX_NUM_LEDS - 1; i >= 0; i--) {
     if (led_train_tail <= i && i <= led_train_head) {
       // Hop aboard the train
       train_mid_pt = is_odd ? led_train_tail + steps_to_fade_train - 1 : led_train_tail + steps_to_fade_train;
@@ -1002,7 +970,7 @@ bool doLedTimer(void *)
     bleepLit = 0;
   }
 
-  int durSinceBleepBegin = now-bleepBeginTime;
+  int durSinceBleepBegin = now - bleepBeginTime;
   if (bleepLit && durSinceBleepBegin < bleepDur) {
     // We are in the middle of a bleep.
     // Serial.printf("activating bleep for note %d on strip %d\n", bleepNote, bleepStrip);
@@ -1011,14 +979,14 @@ bool doLedTimer(void *)
     // This commented out code attempted temporal fading which is kind of pointless because the bleeps are short.
     //CRGB bleepColor = getColorForTrainPosition(getColorForNote(bleepNote), fade_amount_per_step, (1-((bleepDur - durSinceBleepBegin) / bleepDur)) * steps_to_fade_train);
     for (int i = stripEnd; i >= stripEnd - 25; i--) {
-      setLeds(i, bleepStrip, getColorForTrainPosition(bleepColor, fade_amount_per_step, stripEnd-i));
+      setLeds(i, bleepStrip, getColorForTrainPosition(bleepColor, fade_amount_per_step, stripEnd - i));
     }
   } else {
     // Disable the bleep light.
     bleepLit = 0;
   }
-  
-  
+
+
   return true;
 }
 
@@ -1046,16 +1014,15 @@ CRGB colors[] = {
    CRGB(142, 172, 58), // teal
    CRGB(255, 165, 0) // green
 };
-CRGB getColorForNote(int midi_note)
-{
-  if (midi_note % 12 == 0) return colors[0]; // C
-  if (midi_note % 12 == 2) return colors[1]; // D
-  if (midi_note % 12 == 4) return colors[2]; // E
-  if (midi_note % 12 == 5) return colors[3]; // F
-  if (midi_note % 12 == 7) return colors[4]; // G
-  if (midi_note % 12 == 9) return colors[5]; // A
-  if (midi_note % 12 == 11) return colors[6]; // B
-  else return CRGB::White; // this should never happen
+CRGB getColorForNote(int midi_note) {
+  if (midi_note % 12 == 0) return colors[0];   // C
+  if (midi_note % 12 == 2) return colors[1];   // D
+  if (midi_note % 12 == 4) return colors[2];   // E
+  if (midi_note % 12 == 5) return colors[3];   // F
+  if (midi_note % 12 == 7) return colors[4];   // G
+  if (midi_note % 12 == 9) return colors[5];   // A
+  if (midi_note % 12 == 11) return colors[6];  // B
+  else return CRGB::White;                     // this should never happen
 }
 
 CRGB getBackgroundColor(CRGB color) {
@@ -1070,50 +1037,75 @@ CRGB getColorForTrainPosition(CRGB color, int fade_amount_per_step, int distance
   return scaleGamma(ret_color);
 }
 
-CRGB scaleGamma(CRGB color)
-{
+CRGB scaleGamma(CRGB color) {
   color.r = gamma8[color.r];
   color.g = gamma8[color.g];
   color.b = gamma8[color.b];
   return color;
 }
 
-void lightTest()
-{
+int curParamStrip = 0;
+
+void lightTest() {
   Serial.printf("Starting light test\n");
-  FastLED.delay(500);
-  for (int i = 0; i < 7; i++)
-  {
-    CRGB led_background_color = colors[i];
-    led_background_color.fadeLightBy(BACKGROUND_FADE_AMOUNT);
-    led_background_color = scaleGamma(led_background_color);
-    for (int j = 0; j < NUM_L1; j++)
-    {
-      leds0[j] = led_background_color;     
+  while (curParamStrip < 7) {
+    for (int strip = 0; strip < 7; strip++) {
+      CRGB test_color = colors[strip];
+      int led_train_tail = ledSizes[strip] / 2 - 25;
+      int led_train_head = led_train_tail + 50;
+      CRGB background_color = getBackgroundColor(test_color);
+      bool is_odd = led_train_length % 2 == 1;
+        int steps_to_fade_train = (led_train_length + 1) / 2;
+          int fade_amount_per_step = divRoundClosest(BACKGROUND_FADE_AMOUNT, steps_to_fade_train);
+
+
+      for (int i = MAX_NUM_LEDS - 1; i >= 0; i--) {
+        if (led_train_tail <= i && i <= led_train_head) {
+          int distance_to_mid_pt = 0;
+          // Hop aboard the train
+          int train_mid_pt = is_odd ? led_train_tail + steps_to_fade_train - 1 : led_train_tail + steps_to_fade_train;
+          if (is_odd) {
+            // train has single mid-point
+            int distance_to_mid_pt = abs(train_mid_pt - i);
+          } else {
+            // train has two mid-points
+            if (i == train_mid_pt || i == (train_mid_pt - 1)) {
+              distance_to_mid_pt = 0;
+            } else if (i < train_mid_pt) {
+              distance_to_mid_pt = (train_mid_pt - 1) - i;
+            } else {
+              distance_to_mid_pt = i - train_mid_pt;
+            }
+          }
+
+          CRGB train_color = getColorForTrainPosition(test_color, fade_amount_per_step, distance_to_mid_pt);
+          setLeds(i, strip, train_color);
+        } else {
+          setLeds(i, strip, background_color);
+        }
+      }
     }
-    FastLED.delay(500);
+    FastLED.delay(1);
   }
+
   Serial.printf("Finished light test\n");
 }
 
 // Returns a % b.
 // C modulo operator (%) doesn't work as expected with negative numbers, so implement our own:
 // https://stackoverflow.com/questions/11720656/modulo-operation-with-negative-numbers
-int mod(int a, int b)
-{
+int mod(int a, int b) {
   int r = a % b;
   return r < 0 ? r + b : r;
 }
 
 // Returns `n / d` rounded to the closest integer
 // https://stackoverflow.com/a/18067292
-int divRoundClosest(const int n, const int d)
-{
+int divRoundClosest(const int n, const int d) {
   return ((n < 0) == (d < 0)) ? ((n + d / 2) / d) : ((n - d / 2) / d);
 }
 
-void loopAudio()
-{
+void loopAudio() {
   timer1sec.tick();
   timer8sec.tick();
   timerRestartChord.tick();
@@ -1146,8 +1138,7 @@ void loopAudio()
 /*
    this is the main loop
 */
-void loop()
-{
+void loop() {
   static int key1val = 1;
   static int key2val = 1;
   static int key3val = 1;
@@ -1177,47 +1168,61 @@ void loop()
 /*
    Callbacks
 */
-void MidiCtrl_Cb_NoteOn(uint8_t ch, uint8_t note, float vel)
-{
+void MidiCtrl_Cb_NoteOn(uint8_t ch, uint8_t note, float vel) {
   Arp_NoteOn(ch, note, vel);
 }
 
-void MidiCtrl_Cb_NoteOff(uint8_t ch, uint8_t note)
-{
+void MidiCtrl_Cb_NoteOff(uint8_t ch, uint8_t note) {
   Arp_NoteOff(ch, note);
 }
 
-void MidiCtrl_Status_ValueChangedIntArr(const char *descr, int value, int index)
-{
+void MidiCtrl_Status_ValueChangedIntArr(const char *descr, int value, int index) {
   Status_ValueChangedIntArr(descr, value, index);
 }
 
-void Arp_Cb_NoteOn(uint8_t ch, uint8_t note, float vel)
-{
+void Arp_Cb_NoteOn(uint8_t ch, uint8_t note, float vel) {
   FmSynth_NoteOn(ch, note, vel);
 }
 
-void Arp_Cb_NoteOff(uint8_t ch, uint8_t note)
-{
+void Arp_Cb_NoteOff(uint8_t ch, uint8_t note) {
   FmSynth_NoteOff(ch, note);
 }
 
-void Arp_Status_ValueChangedInt(const char *msg, int value)
-{
+void Arp_Status_ValueChangedInt(const char *msg, int value) {
   Status_ValueChangedInt(msg, value);
 }
 
-void Arp_Status_LogMessage(const char *msg)
-{
+void Arp_Status_LogMessage(const char *msg) {
   Status_LogMessage(msg);
 }
 
-void Arp_Status_ValueChangedFloat(const char *msg, float value)
-{
+void Arp_Status_ValueChangedFloat(const char *msg, float value) {
   Status_ValueChangedFloat(msg, value);
 }
 
-void Arp_Cb_Step(uint8_t step)
-{
+void Arp_Cb_Step(uint8_t step) {
   /* ignore */
+}
+
+void LEDChange(uint8_t param, float value) {
+  CRGB newColor = CRGB(colors[curParamStrip]);
+  uint8_t r = newColor[0];
+  uint8_t g = newColor[1];
+  uint8_t b = newColor[2];
+  uint8_t v = value * 255;
+  if (param == 0) {
+    r = v;
+  } else if (param == 1) {
+    g = v;
+  } else if (param == 2) {
+    b = v;
+  }
+  colors[curParamStrip].setRGB(r,g,b);
+  for (int i = 0; i < 7; i++) {
+      Serial.printf("strip %d: (%d %d %d)\n", i, colors[i][0], colors[i][1], colors[i][2]);
+  }
+}
+void LEDStrip(uint8_t param, float value) {
+  curParamStrip = param;
+  Serial.printf("strip %d\n", param);
 }
