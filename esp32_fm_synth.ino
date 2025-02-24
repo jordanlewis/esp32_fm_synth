@@ -347,7 +347,7 @@ void setupLeds() {
   led_train_length = 50;  //divRoundClosest(MAX_NUM_LEDS, LED_TRAIN_LENGTH_FRACTION);
 
   
-  //lightTest();
+  // lightTest();
 
 
   // TODO: this timer interval isn't 100% accurate. I'm currently seeing log lines like this:
@@ -884,12 +884,22 @@ bool doLedTimer(void *) {
     // Serial.printf("chord changed\n");
   }
 
-  CRGB root_color = getColorForNote(lastChord[0]);
-  CRGB third_color = getColorForNote(lastChord[1]);
-  CRGB fifth_color = getColorForNote(lastChord[2]);
+  int my_chords[4][4] = {
+    {69, 72, 76, 79}, //Am7
+    {69, 72, 76, 0}, //Am
+    {72, 76, 79, 83}, //C7
+    {72, 76, 79, 0}, //C
+  };
+  int my_chord[] = {72, 76, 79, 0}; //C
+  Serial.printf("my_chord: %d %d %d %d\n", my_chord[0], my_chord[1], my_chord[2], my_chord[3]);
+  int root_note = my_chord[0];
+  CRGB root_color = getColorForRootAndNote(root_note, my_chord[0]);
+  CRGB third_color = getColorForRootAndNote(root_note, my_chord[1]);
+  CRGB fifth_color = getColorForRootAndNote(root_note, my_chord[2]);
   CRGB seventh_color = NULL;
-  if (lastChord[3] != 0) {
-    CRGB seventh_color = getColorForNote(lastChord[3]);
+  if (my_chord[3] != 0) {
+    seventh_color = getColorForRootAndNote(root_note, my_chord[3]);
+    // Serial.printf("Got 7th color: %d %d %d\n", seventh_color.r, seventh_color.g, seventh_color.b);
   }
 
   xSemaphoreGive(lastChordMutex);
@@ -913,6 +923,7 @@ bool doLedTimer(void *) {
   CRGB seventh_background_color = NULL;
   if (seventh_color != NULL) {
     seventh_background_color = getBackgroundColor(seventh_color);
+    // Serial.printf("Got 7th background color: %d %d %d\n", seventh_background_color.r, seventh_background_color.g, seventh_background_color.b);
   }
 
   // Why do we iterate backwards? When iterating forwards, we had a weird "color bleed" problem. The 1st LED of
@@ -940,19 +951,21 @@ bool doLedTimer(void *) {
       CRGB third_train_color = getColorForTrainPosition(third_color, fade_amount_per_step, distance_to_mid_pt);
       CRGB fifth_train_color = getColorForTrainPosition(fifth_color, fade_amount_per_step, distance_to_mid_pt);
       CRGB seventh_train_color = seventh_color == NULL ? NULL : getColorForTrainPosition(seventh_color, fade_amount_per_step, distance_to_mid_pt);
+      // Serial.printf("Got 7th train color: %d %d %d\n", seventh_train_color.r, seventh_train_color.g, seventh_train_color.b);
       setLeds(i, 0, root_train_color);
       setLeds(i, 1, root_train_color);
-      setLeds(i, 2, third_train_color);
+      setLeds(i, 2, seventh_train_color == NULL ? third_train_color : seventh_train_color);
       setLeds(i, 3, seventh_train_color == NULL ? fifth_train_color : seventh_train_color);
-      setLeds(i, 4, seventh_train_color == NULL ? fifth_train_color : seventh_train_color);
+      setLeds(i, 4, third_train_color);
       setLeds(i, 5, fifth_train_color);
       setLeds(i, 6, third_train_color);
     } else {
+      // we're not on the LED Train. just show the background color.
       setLeds(i, 0, root_background_color);
       setLeds(i, 1, root_background_color);
-      setLeds(i, 2, third_background_color);
+      setLeds(i, 2, seventh_background_color == NULL ? third_background_color : seventh_background_color);
       setLeds(i, 3, seventh_background_color == NULL ? fifth_background_color : seventh_background_color);
-      setLeds(i, 4, seventh_background_color == NULL ? fifth_background_color : seventh_background_color);
+      setLeds(i, 4, third_background_color);
       setLeds(i, 5, fifth_background_color);
       setLeds(i, 6, third_background_color);
     }
@@ -975,9 +988,9 @@ bool doLedTimer(void *) {
     // We are in the middle of a bleep.
     // Serial.printf("activating bleep for note %d on strip %d\n", bleepNote, bleepStrip);
     int stripEnd = ledSizes[bleepStrip] + ledOffsets[bleepStrip] - 1;
-    CRGB bleepColor = getColorForNote(bleepNote);
+    CRGB bleepColor = getColorForRootAndNote(root_note, bleepNote);
     // This commented out code attempted temporal fading which is kind of pointless because the bleeps are short.
-    //CRGB bleepColor = getColorForTrainPosition(getColorForNote(bleepNote), fade_amount_per_step, (1-((bleepDur - durSinceBleepBegin) / bleepDur)) * steps_to_fade_train);
+    //CRGB bleepColor = getColorForTrainPosition(getColorForRootAndNote(root_note, bleepNote), fade_amount_per_step, (1-((bleepDur - durSinceBleepBegin) / bleepDur)) * steps_to_fade_train);
     for (int i = stripEnd; i >= stripEnd - 25; i--) {
       setLeds(i, bleepStrip, getColorForTrainPosition(bleepColor, fade_amount_per_step, stripEnd - i));
     }
@@ -992,27 +1005,27 @@ bool doLedTimer(void *) {
 
 void setLeds(int ledIndex, int stripIndex, CRGB color) {
   ledIndex -= ledOffsets[stripIndex];
-  if (0 <= ledIndex && ledIndex < ledSizes[stripIndex] + ledOffsets[stripIndex]) {
+  if (0 <= ledIndex && ledIndex < ledSizes[stripIndex]) { //+ ledOffsets[stripIndex]) {
     ledss[stripIndex][ledIndex] = color;
   }
 }
 
 CRGB colors[] = {
-//  CRGB(CRGB::LightCoral),
-//  CRGB(CRGB::FireBrick),
-//  CRGB(CRGB::Gold),
-//  CRGB(CRGB::HotPink),
-//  CRGB(CRGB::Tomato),
-//  CRGB(CRGB::SaddleBrown),
-//  CRGB(CRGB::Orange)
+ // CRGB(CRGB::LightCoral),  // light pink
+ // CRGB(CRGB::FireBrick),   // red
+ // CRGB(CRGB::Gold),        // yellow/green
+ // CRGB(CRGB::HotPink),     // magenta 
+ // CRGB(CRGB::Tomato),      //red, bad fade
+ // CRGB(CRGB::SaddleBrown), // red, bad fade
+ // CRGB(CRGB::Orange)       // harvest yellow
 
-   CRGB(182, 26, 182), // purpleish
-   CRGB(200, 0, 34), // red/pink
-   CRGB(254, 128, 58), // red
-   CRGB(184, 212, 148), // pink
-   CRGB(202, 127, 146), // purple
-   CRGB(142, 172, 58), // teal
-   CRGB(255, 165, 0) // green
+   CRGB(182, 26,  182), // purple       https://www.webfx.com/web-design/color-picker/B61AB6
+   CRGB(200, 0,    34), // red          https://www.webfx.com/web-design/color-picker/C80022
+   CRGB(254, 128,  58), // orange       https://www.webfx.com/web-design/color-picker/FE803A
+   CRGB(184, 212, 148), // blue/green   https://www.webfx.com/web-design/color-picker/B8D494
+   CRGB(202, 127, 146), // pink         https://www.webfx.com/web-design/color-picker/CA7F92
+   CRGB(142, 172,  58), // green        https://www.webfx.com/web-design/color-picker/8EAC3A
+   CRGB(255, 165,   0)  // orange       https://www.webfx.com/web-design/color-picker/FFA500
 };
 CRGB getColorForNote(int midi_note) {
   if (midi_note % 12 == 0) return colors[0];   // C
@@ -1025,16 +1038,64 @@ CRGB getColorForNote(int midi_note) {
   else return CRGB::White;                     // this should never happen
 }
 
+
+CRGB colors_fall[] = {
+  CRGB(255, 203,   0), // yellow/green https://www.webfx.com/web-design/color-picker/FFCB00
+  CRGB(255, 165,   0), // harvest gold https://www.webfx.com/web-design/color-picker/FFA500
+  CRGB(200, 0,    34), // red          https://www.webfx.com/web-design/color-picker/C80022
+  CRGB(142, 172,  58), // green        https://www.webfx.com/web-design/color-picker/8EAC3A
+};
+CRGB getColorForRootAndNote(int root_midi_note, int this_midi_note) {
+  int normalized_root_midi_note = root_midi_note % 12;
+  int this_normalized_midi_note = this_midi_note % 12;
+  if (normalized_root_midi_note == 0 || normalized_root_midi_note <= 5) {  // C
+    if (this_normalized_midi_note == 0)  // C
+      return CRGB(255, 203,   0); // yellow/green https://www.webfx.com/web-design/color-picker/FFCB00
+    if (this_normalized_midi_note == 4)  // E
+      return CRGB(142, 172,  58); // green        https://www.webfx.com/web-design/color-picker/8EAC3A
+    if (this_normalized_midi_note == 7)  // G
+      return CRGB(255, 165,   0); // harvest gold https://www.webfx.com/web-design/color-picker/FFA500
+    if (this_normalized_midi_note == 11) // B 
+      return CRGB(200, 0,    34); // red          https://www.webfx.com/web-design/color-picker/C80022
+    else return CRGB::White;      // this should never happen
+  } else if (normalized_root_midi_note == 9 || normalized_root_midi_note > 5) {  // A
+    if (this_normalized_midi_note == 9)  // A
+      return CRGB(255, 165,   0); // harvest gold https://www.webfx.com/web-design/color-picker/FFA500
+    if (this_normalized_midi_note == 0)  // C
+      return CRGB(200, 0,    34); // red          https://www.webfx.com/web-design/color-picker/C80022
+    if (this_normalized_midi_note == 4)  // E
+      return CRGB(255, 203,   0); // yellow/green https://www.webfx.com/web-design/color-picker/FFCB00
+    if (this_normalized_midi_note == 7)  // G 
+      return CRGB(142, 172,  58); // green        https://www.webfx.com/web-design/color-picker/8EAC3A
+    else {
+      Serial.printf("Got unexpected this_midi_note: %d\n", this_midi_note);
+      return CRGB::White;      // this should never happen
+    }
+  }
+}
+
 CRGB getBackgroundColor(CRGB color) {
   // https://github.com/FastLED/FastLED/wiki/Pixel-reference#dimming-and-brightening-colors
   color.fadeLightBy(BACKGROUND_FADE_AMOUNT);
   return scaleGamma(color);
 }
 
+CRGB getBackgroundColorNoGamma(CRGB color) {
+  color.fadeLightBy(BACKGROUND_FADE_AMOUNT);
+  return color;
+}
+
 CRGB getColorForTrainPosition(CRGB color, int fade_amount_per_step, int distance_to_mid_pt) {
   CRGB ret_color = color;
   ret_color.fadeLightBy(fade_amount_per_step * distance_to_mid_pt);
   return scaleGamma(ret_color);
+}
+
+CRGB getColorForTrainPosition2(CRGB color, CRGB background_color, int steps_to_fade_train, int distance_to_mid_pt) {
+  float blend_fraction = (float)distance_to_mid_pt / (float)steps_to_fade_train;
+  uint8_t blend_amount = blend_fraction * 255;
+  CRGB ret_color = scaleGamma(blend(color, background_color, blend_amount));
+  return ret_color;
 }
 
 CRGB scaleGamma(CRGB color) {
@@ -1046,17 +1107,47 @@ CRGB scaleGamma(CRGB color) {
 
 int curParamStrip = 0;
 
+// CRGB(182, 26,  182), // purple       https://www.webfx.com/web-design/color-picker/B61AB6
+// CRGB(200, 0,    34), // red          https://www.webfx.com/web-design/color-picker/C80022
+// CRGB(254, 128,  58), // orange       https://www.webfx.com/web-design/color-picker/FE803A
+// CRGB(184, 212, 148), // blue/green   https://www.webfx.com/web-design/color-picker/B8D494
+// CRGB(202, 127, 146), // pink         https://www.webfx.com/web-design/color-picker/CA7F92
+// CRGB(142, 172,  58), // green        https://www.webfx.com/web-design/color-picker/8EAC3A
+// CRGB(255, 165,   0)  // orange       https://www.webfx.com/web-design/color-picker/FFA500
+
+
+CRGB colors_fall_test[] = {
+  CRGB(255, 203,   0), // yellow/green https://www.webfx.com/web-design/color-picker/FFCB00
+  CRGB(255, 165,   0), // harvest gold https://www.webfx.com/web-design/color-picker/FFA500
+  CRGB(200, 0,    34), // red          https://www.webfx.com/web-design/color-picker/C80022
+  CRGB(142, 172,  58), // green        https://www.webfx.com/web-design/color-picker/8EAC3A
+  CRGB(200, 0,    34), // red          https://www.webfx.com/web-design/color-picker/C80022
+  CRGB(131, 172,  58), // green        https://www.webfx.com/web-design/color-picker/8EAC3A
+  CRGB(200, 0,    34), // red          https://www.webfx.com/web-design/color-picker/C80022
+};
+CRGB colors_fall_bg[] = {
+  getBackgroundColorNoGamma(colors_fall_test[0]),
+  getBackgroundColorNoGamma(colors_fall_test[1]),
+  getBackgroundColorNoGamma(colors_fall_test[2]),
+  getBackgroundColorNoGamma(colors_fall_test[3]),
+  getBackgroundColorNoGamma(colors_fall_test[4]),//CRGB(60, 0,    21),
+  getBackgroundColorNoGamma(colors_fall_test[5]),
+  getBackgroundColorNoGamma(colors_fall_test[6])
+};
+
 void lightTest() {
   Serial.printf("Starting light test\n");
+  led_train_length = 14;
+  bool use_blend = true;
   while (curParamStrip < 7) {
     for (int strip = 0; strip < 7; strip++) {
-      CRGB test_color = colors[strip];
-      int led_train_tail = ledSizes[strip] / 2 - 25;
-      int led_train_head = led_train_tail + 50;
-      CRGB background_color = getBackgroundColor(test_color);
+      CRGB test_color = colors_fall_test[strip];
+      int led_train_tail = ledSizes[strip] / 2 - led_train_length / 2 + ledOffsets[strip];
+      int led_train_head = led_train_tail + led_train_length - 1;
+      CRGB background_color = use_blend ? colors_fall_bg[strip] : getBackgroundColor(test_color);
       bool is_odd = led_train_length % 2 == 1;
-        int steps_to_fade_train = (led_train_length + 1) / 2;
-          int fade_amount_per_step = divRoundClosest(BACKGROUND_FADE_AMOUNT, steps_to_fade_train);
+      int steps_to_fade_train = (led_train_length + 1) / 2;
+      int fade_amount_per_step = divRoundClosest(BACKGROUND_FADE_AMOUNT, steps_to_fade_train);
 
 
       for (int i = MAX_NUM_LEDS - 1; i >= 0; i--) {
@@ -1078,12 +1169,15 @@ void lightTest() {
             }
           }
 
-          CRGB train_color = getColorForTrainPosition(test_color, fade_amount_per_step, distance_to_mid_pt);
+          CRGB train_color = use_blend ? 
+            getColorForTrainPosition2(test_color, background_color, steps_to_fade_train, distance_to_mid_pt) :
+            getColorForTrainPosition(test_color, fade_amount_per_step, distance_to_mid_pt);
           setLeds(i, strip, train_color);
         } else {
-          setLeds(i, strip, background_color);
+          setLeds(i, strip, use_blend ? scaleGamma(background_color) : background_color);
         }
       }
+      FastLED.delay(500);
     }
     FastLED.delay(1);
   }
