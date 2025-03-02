@@ -990,7 +990,7 @@ bool doLedTimer(void *) {
 
 void setLeds(int ledIndex, int stripIndex, CRGB color) {
   ledIndex -= ledOffsets[stripIndex];
-  if (0 <= ledIndex && ledIndex < ledSizes[stripIndex]) { //+ ledOffsets[stripIndex]) {
+  if (0 <= ledIndex && ledIndex < ledSizes[stripIndex]) {
     ledss[stripIndex][ledIndex] = color;
   }
 }
