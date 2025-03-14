@@ -865,6 +865,29 @@ static int *lastLastChord = NULL;
 int bleepBeginTime = 0;
 int bleepLit = 0;
 int chordBeginTime = 0;
+int color_blend_amount = 0; // [0, 255]
+
+CRGB root_color = NULL;
+CRGB third_color = NULL;
+CRGB fifth_color = NULL;
+CRGB seventh_color = NULL;
+
+CRGB root_background_color = NULL;
+CRGB third_background_color = NULL;
+CRGB fifth_background_color = NULL;
+CRGB seventh_background_color = NULL;
+
+CRGB last_root_color = NULL;
+CRGB last_third_color = NULL;
+CRGB last_fifth_color = NULL;
+CRGB last_seventh_color = NULL;
+
+CRGB last_root_background_color = NULL;
+CRGB last_third_background_color = NULL;
+CRGB last_fifth_background_color = NULL;
+CRGB last_seventh_background_color = NULL;
+
+int root_note = 0;
 bool doLedTimer(void *) {
   int now = millis();
 
@@ -876,19 +899,44 @@ bool doLedTimer(void *) {
 
   if (lastLastChord != lastChord) {
     // The chord just changed, i.e. it's been 8 seconds
+    // Serial.printf("chord changed\n");
     lastLastChord = lastChord;
     led_train_head = 0;
     chordBeginTime = now;
-    // Serial.printf("chord changed\n");
+    color_blend_amount = 0;
+
+    root_note = lastChord[0];
+    
+    last_root_color = root_color;
+    last_third_color = third_color;
+    last_fifth_color = fifth_color;
+    last_seventh_color = seventh_color;
+
+    last_root_background_color = root_background_color;
+    last_third_background_color = third_background_color;
+    last_fifth_background_color = fifth_background_color;
+    last_seventh_background_color = seventh_background_color;
+
+    root_color = getColorForRootAndNote(root_note, lastChord[0]);
+    third_color = getColorForRootAndNote(root_note, lastChord[1]);
+    fifth_color = getColorForRootAndNote(root_note, lastChord[2]);
+    seventh_color = NULL;
+    if (lastChord[3] != 0) {
+      seventh_color = getColorForRootAndNote(root_note, lastChord[3]);
+    }
+
+    root_background_color = getBackgroundColorNoGamma(root_color);
+    third_background_color = getBackgroundColor(third_color);
+    fifth_background_color = getBackgroundColor(fifth_color);
+    seventh_background_color = NULL;
+    if (seventh_color != NULL) {
+      seventh_background_color = getBackgroundColor(seventh_color);
+    }
   }
 
-  int root_note = lastChord[0];
-  CRGB root_color = getColorForRootAndNote(root_note, lastChord[0]);
-  CRGB third_color = getColorForRootAndNote(root_note, lastChord[1]);
-  CRGB fifth_color = getColorForRootAndNote(root_note, lastChord[2]);
-  CRGB seventh_color = NULL;
-  if (lastChord[3] != 0) {
-    seventh_color = getColorForRootAndNote(root_note, lastChord[3]);
+  if (color_blend_amount < 255){
+    color_blend_amount = color_blend_amount + 5;
+    if (color_blend_amount > 255) color_blend_amount = 255;
   }
 
   xSemaphoreGive(lastChordMutex);
@@ -905,14 +953,6 @@ bool doLedTimer(void *) {
   int steps_to_fade_train = (led_train_length + 1) / 2;
   int fade_amount_per_step = divRoundClosest(BACKGROUND_FADE_AMOUNT, steps_to_fade_train);
   bool is_odd = led_train_length % 2 == 1;
-
-  CRGB root_background_color = getBackgroundColor(root_color);
-  CRGB third_background_color = getBackgroundColor(third_color);
-  CRGB fifth_background_color = getBackgroundColor(fifth_color);
-  CRGB seventh_background_color = NULL;
-  if (seventh_color != NULL) {
-    seventh_background_color = getBackgroundColor(seventh_color);
-  }
 
   // Why do we iterate backwards? When iterating forwards, we had a weird "color bleed" problem. The 1st LED of
   // the 1st strip would be the color of the last LED in the 2nd strip. Likewise, the 1st LED of the 2nd strip
@@ -935,7 +975,9 @@ bool doLedTimer(void *) {
         }
       }
 
-      CRGB root_train_color = getColorForTrainPosition(root_color, fade_amount_per_step, distance_to_mid_pt);
+      CRGB root_train_color = getColorForTrainPosition3(
+        last_root_color, root_color, color_blend_amount, fade_amount_per_step, distance_to_mid_pt
+      );
       CRGB third_train_color = getColorForTrainPosition(third_color, fade_amount_per_step, distance_to_mid_pt);
       CRGB fifth_train_color = getColorForTrainPosition(fifth_color, fade_amount_per_step, distance_to_mid_pt);
       CRGB seventh_train_color = seventh_color == NULL ? NULL : getColorForTrainPosition(seventh_color, fade_amount_per_step, distance_to_mid_pt);
@@ -949,8 +991,9 @@ bool doLedTimer(void *) {
       setLeds(i, 6, third_train_color);
     } else {
       // we're not on the LED Train. just show the background color.
-      setLeds(i, 0, root_background_color);
-      setLeds(i, 1, root_background_color);
+      CRGB root_blended_background_color = getBlendedBackgroundColor(last_root_background_color, root_background_color, color_blend_amount, i);
+      setLeds(i, 0, root_blended_background_color);
+      setLeds(i, 1, root_blended_background_color);
       setLeds(i, 2, seventh_background_color == NULL ? third_background_color : seventh_background_color);
       setLeds(i, 3, seventh_background_color == NULL ? fifth_background_color : seventh_background_color);
       setLeds(i, 4, third_background_color);
@@ -989,6 +1032,9 @@ bool doLedTimer(void *) {
 }
 
 void setLeds(int ledIndex, int stripIndex, CRGB color) {
+  // if (stripIndex < 2 && ledIndex == 230) {
+  //   Serial.printf("setLeds index: [%d] color: [%d, %d, %d]\n", stripIndex, color.r, color.g, color.b);
+  // }
   ledIndex -= ledOffsets[stripIndex];
   if (0 <= ledIndex && ledIndex < ledSizes[stripIndex]) {
     ledss[stripIndex][ledIndex] = color;
@@ -1081,6 +1127,20 @@ CRGB getBackgroundColorNoGamma(CRGB color) {
   return color;
 }
 
+CRGB getBlendedBackgroundColor(
+  CRGB old_background_color, CRGB new_background_color, int color_blend_amount, int i
+) {
+
+  CRGB old_color = old_background_color;
+  CRGB new_color = new_background_color;
+  CRGB ret = scaleGamma(blend(old_color, new_color, color_blend_amount));
+  // if (i == 230) {
+  //   Serial.printf("blended bg step [%d] old: [%d, %d, %d] new [%d, %d, %d] blended [%d, %d, %d]\n", color_blend_amount, old_background_color.r, old_background_color.g, old_background_color.b, new_background_color.r, new_background_color.g, new_background_color.b, ret.r, ret.g, ret.b);  
+  // }
+  
+  return ret;
+}
+
 CRGB getColorForTrainPosition(CRGB color, int fade_amount_per_step, int distance_to_mid_pt) {
   CRGB ret_color = color;
   ret_color.fadeLightBy(fade_amount_per_step * distance_to_mid_pt);
@@ -1092,6 +1152,18 @@ CRGB getColorForTrainPosition2(CRGB color, CRGB background_color, int steps_to_f
   uint8_t blend_amount = blend_fraction * 255;
   CRGB ret_color = scaleGamma(blend(color, background_color, blend_amount));
   return ret_color;
+}
+
+CRGB getColorForTrainPosition3(
+  CRGB old_color, CRGB new_color, int color_blend_amount, int fade_amount_per_step, int distance_to_mid_pt
+) {
+  CRGB old_color_faded = old_color;
+  old_color_faded.fadeLightBy(fade_amount_per_step * distance_to_mid_pt);
+
+  CRGB new_color_faded = new_color;
+  new_color_faded.fadeLightBy(fade_amount_per_step * distance_to_mid_pt);
+
+  return scaleGamma(blend(old_color_faded, new_color_faded, color_blend_amount));
 }
 
 CRGB scaleGamma(CRGB color) {
